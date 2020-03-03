@@ -92,7 +92,6 @@ function _getUserId(email){
       });//end of query
       
     }else{ //failed to test email
-      reject('if');
     }
   });//end of promise
 }

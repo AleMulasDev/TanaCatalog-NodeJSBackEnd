@@ -9,6 +9,7 @@ var loginRouter = require("./routes/Users/login");
 var registerRouter = require("./routes/Users/register");
 var verifyRouter = require("./routes/Users/verify");
 var recoverRouter = require("./routes/Users/recover");
+var changeRouter = require("./routes/Users/change");
 
 const constant = require("./utils/constant");
 
@@ -37,10 +38,12 @@ app.use(constant.LOGIN_PATH, loginRouter);
 app.use(constant.REGISTER_PATH, registerRouter);
 app.use(constant.VERIFY_PATH, verifyRouter);
 app.use(constant.RECOVER_PATH, recoverRouter);
+app.use(constant.CHANGE_PATH, changeRouter);
 
 console.log("Listening on: " + constant.LOGIN_PATH);
 console.log("Listening on: " + constant.REGISTER_PATH);
 console.log("Listening on: " + constant.VERIFY_PATH);
 console.log("Listening on: " + constant.RECOVER_PATH);
+console.log("Listening on: " + constant.CHANGE_PATH);
 
 module.exports = app;

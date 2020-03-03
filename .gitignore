@@ -107,3 +107,9 @@ dist
 _api_keys.js
 _secrets.js
 _keys/*
+
+#VsCode stuff
+.vscode/*
+
+#Proof of concepts that are too early to commit
+installer/*

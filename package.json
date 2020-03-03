@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "node ./bin/www",
+    "initMysql" : "node ./installer/initSql.js"
   },
   "dependencies": {
     "@sendgrid/mail": "^6.5.3",

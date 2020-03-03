@@ -13,7 +13,8 @@ router.get("/", function (req, res, next) {
   let password = generator.generate({
     length: 10,
     numbers: true,
-    uppercase: true
+    uppercase: true,
+    symbols: true
   });
   if(req.query.token){
     let token = req.query.token;
