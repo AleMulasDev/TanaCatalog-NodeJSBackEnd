@@ -10,48 +10,56 @@ function _initConnection() {
     database: "tanagoblin"
   });
 }
-function _login(email) {
+
+async function _login(email) {
   let connection = _initConnection();
   return new Promise((resolve, reject) => {
-    var emailRegex = /^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i;
-
-    if (emailRegex.test(email)) {
-      connection.connect();
-      connection.query(
-        `SELECT id,email, password, firstname, lastname FROM users WHERE email='${email}'`,
-        (error, results, fields) => {
-          if (error) {
-            //Mysql error
+    connection.connect();
+    connection.query(
+      `SELECT id,email, password, firstname, lastname FROM users WHERE email='${email}' and verified=true`,
+      (error, results, fields) => {
+        if (error) {
+          //Mysql error
+          reject({
+            reason: "Errore nella connessione al database interno",
+            debug: `[MYSQL] ${error}`
+          });
+        } else {
+          if (results.length != 1) {
             reject({
-              reason: "Errore nella connessione al database interno",
-              debug: `[MYSQL] ${error}`
+              reason: "Email o password errati",
+              debug: "[MYSQL] More than one result"
             });
           } else {
-            if (results.length != 1) {
-              reject({
-                reason: "Email o password errati",
-                debug: "[MYSQL] More than one result"
-              });
-            } else {
-              resolve({
-                id: results[0]["id"],
-                username: results[0]["email"],
-                password: results[0]["password"]
-              });
-            }
+            resolve({
+              id: results[0]["id"],
+              email: results[0]["email"],
+              password: results[0]["password"]
+            });
           }
         }
-      );
-    } else {
-      reject({
-        reason: "Inserire una mail valida",
-        debug: "[LOGIN] Username didn't match the regex"
-      });
-    }
+      }
+    );
   });
 }
 
-function _register(email, password, firstname, lastname){
+async function _updateEmail(oldEmail, newEmail){
+  let connection = _initConnection();
+  connection.connect();
+  return new Promise((resolve, reject) => {
+    connection.query(`\
+    UPDATE users SET email = '${newEmail}', verified = false WHERE email = '${oldEmail}'`,
+    (error, results, fields) => {
+      if(!error){
+        resolve();
+      }else{
+        reject(error);
+      }
+    })
+  })
+}
+
+async function _register(email, password, firstname, lastname){
   let connection = _initConnection();
   connection.connect();
   return new Promise((resolve, reject) => {
@@ -70,29 +78,47 @@ function _register(email, password, firstname, lastname){
   });//end of promise
 }
 
-function _getUserId(email){
-  var emailRegex = /^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i;
+async function _mailExist(email){
   return new Promise((resolve, reject) => {
-    if (emailRegex.test(email)) {
-      let connection = _initConnection();
-      connection.connect();
-      connection.query(
-      `SELECT id FROM users WHERE email='${email}'`,
-      (error, results, fields) => {
-        if(!error){
-          if(results.length == 0){
-            reject('length');
-          }else{
-            resolve(results[0]['id']);
-          }
+    let connection = _initConnection();
+    connection.connect();
+    connection.query(
+    `SELECT id FROM users WHERE email='${email}'`,
+    (error, results, fields) => {
+      if(!error){
+        if(results.length == 0){
+          resolve(false);
         }else{
-          //error executing query
-          reject('Error executing query ' + error);
+          resolve(true);
         }
-      });//end of query
-      
-    }else{ //failed to test email
-    }
+      }else{
+        //error executing query
+        reject('Error executing query ' + error);
+      }
+    });//end of query
+  });
+}
+
+async function _getUserId(email){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.connect();
+    connection.query(
+    `SELECT id FROM users WHERE email='${email}'`,
+    (error, results, fields) => {
+      if(!error){
+        if(results.length == 0){
+          reject({
+            length: 0
+          });
+        }else{
+          resolve(results[0]['id']);
+        }
+      }else{
+        //error executing query
+        reject('Error executing query ' + error);
+      }
+    });//end of query
   });//end of promise
 }
 
@@ -162,7 +188,9 @@ const SQL = {
   getUserId: _getUserId,
   verify: _verify,
   mailExistAndVerified: _mailExistAndVerified,
-  updatePassword: _updatePassword
+  updatePassword: _updatePassword,
+  updateEmail: _updateEmail,
+  mailExist: _mailExist
 };
 
 module.exports = SQL;
