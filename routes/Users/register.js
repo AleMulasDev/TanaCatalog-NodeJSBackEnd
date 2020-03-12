@@ -6,24 +6,16 @@ var jwt = require("jsonwebtoken");
 var moment = require("moment");
 var fs = require("fs");
 var mail = require("../../utils/mail");
+const utils = require("../../utils/utils");
 
 router.post("/", function(req, res, next) {
-  var emailRegex = /^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i;
-  var nameRegex = /^[a-z ,.'-]+$/i;
 
-  //Minimum eight characters, at least one uppercase letter, one lowercase letter, one number and one special character:
-  var passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-
-  if (
-    req.body.firstname &&
-    req.body.lastname &&
-    req.body.email &&
-    req.body.password &&
-    emailRegex.test(req.body.email) &&
-    nameRegex.test(req.body.firstname) &&
-    nameRegex.test(req.body.lastname) &&
-    passRegex.test(req.body.password)
-  ) {
+  let requestError = utils.checkRequest(req, 'body', 
+    {name:'firstname',isName:true},
+    {name:'lastname',isName:true},
+    {name:'email',isEmail:true},
+    {name:'password',isPassword:true});
+  if (!requestError) {
     bcrypt.hash(req.body.password, 10, (err, password) => {
       if (!err) {
         SQL.register(
@@ -50,8 +42,21 @@ router.post("/", function(req, res, next) {
                       privkey,
                       { algorithm: "RS256" },
                       function(err, token) {
-                        mail.confirmMail(req.body.email, token);
-                        res.send("Look at your mail inbox");
+                        //TODO check err
+                        if(req.body.redirect){
+                          mail.confirmMail(req.body.email, token, req.body.redirect);
+                          res.json({
+                            status: "ok",
+                            success: `Registrato con successo, controlla la tua email`
+                          })
+                        }else{
+                          mail.confirmMail(req.body.email, token);
+                          res.json({
+                            status: "ok",
+                            success: `Registrato con successo, controlla la tua email`
+                          })
+                        }
+                        
                       }
                     );
                   } else {
@@ -73,7 +78,9 @@ router.post("/", function(req, res, next) {
     }); //end of bcrypt hash function
   } else {
     //invalid data
-    res.sendStatus(400);
+    res.json({
+      error: requestError
+    })
   }
 });
 
