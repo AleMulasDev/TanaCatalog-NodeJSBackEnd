@@ -19,7 +19,7 @@ let utils = {
 
 /**
  * Check if a request contains the required parameters and if they respect the regular expression
- * @param {string} request - the request object that has the value to be checked
+ * @param {object} request - the request object that has the value to be checked
  * @param {string} check - body or query checking
  * @param {object} parameters_to_check - parameters to check, with additional information
  * @param {string} parameters_to_check.name - name of the parameter to check
@@ -36,6 +36,7 @@ function checkRequest(request, check, ...parameters_to_check){
   for(p of parameters_to_check){
     if(!p.name || !r[check][p.name]){
       let e = 'Non tutti i parametri necessari sono stati compilati e/o inviati al server';
+      console.log(`name: ` + p.name)
       error = error ? error += `\n${e}` : e;
       break;
     }
@@ -59,6 +60,9 @@ function checkRequest(request, check, ...parameters_to_check){
         error = error ? error += `\n${e}` : e;
         break;
       }
+    }
+    if(p.isGame){
+      //TODO
     }
   }
 

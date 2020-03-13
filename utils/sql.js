@@ -1,6 +1,7 @@
 var mysql = require("mysql");
 const constant = require("./constant");
 const secrets = require("./_secrets");
+let {GameQuery, Game} = require("../models/Game");
 
 function _initConnection() {
   return mysql.createConnection({
@@ -11,12 +12,17 @@ function _initConnection() {
   });
 }
 
+//---------------------------------------------------------
+//                          USERS
+//---------------------------------------------------------
+
 async function _login(email) {
   let connection = _initConnection();
   return new Promise((resolve, reject) => {
     connection.connect();
     connection.query(
-      `SELECT id,email, password, firstname, lastname FROM users WHERE email='${email}' and verified=true`,
+      `SELECT id,email, password, firstname, lastname FROM users WHERE email=? and verified=true`,
+      [email],
       (error, results, fields) => {
         if (error) {
           //Mysql error
@@ -48,7 +54,8 @@ async function _updateEmail(oldEmail, newEmail){
   connection.connect();
   return new Promise((resolve, reject) => {
     connection.query(`\
-    UPDATE users SET email = '${newEmail}', verified = false WHERE email = '${oldEmail}'`,
+    UPDATE users SET email = ?, verified = false WHERE email = ?`,
+    [newEmail, oldEmail],
     (error, results, fields) => {
       if(!error){
         resolve();
@@ -65,7 +72,8 @@ async function _register(email, password, firstname, lastname){
   return new Promise((resolve, reject) => {
     connection.query(
     `INSERT INTO users (email, password, firstname, lastname) \
-    VALUES ('${email}', '${password}', '${firstname}', '${lastname}')`,
+    VALUES (?, ?, ?, ?)`,
+    [email, password, firstname, lastname],
     (error, results, fields) => {
       if(!error){
         resolve();
@@ -83,7 +91,8 @@ async function _mailExist(email){
     let connection = _initConnection();
     connection.connect();
     connection.query(
-    `SELECT id FROM users WHERE email='${email}'`,
+    `SELECT id FROM users WHERE email=?`,
+    [email],
     (error, results, fields) => {
       if(!error){
         if(results.length == 0){
@@ -104,7 +113,8 @@ async function _getUserId(email){
     let connection = _initConnection();
     connection.connect();
     connection.query(
-    `SELECT id FROM users WHERE email='${email}'`,
+    `SELECT id FROM users WHERE email=?`,
+    [email],
     (error, results, fields) => {
       if(!error){
         if(results.length == 0){
@@ -127,7 +137,8 @@ function _verify(userID){
   connection.connect();
   return new Promise((resolve, reject) => {
     connection.query(`\
-    UPDATE users SET verified = true WHERE id = ${userID}`,
+    UPDATE users SET verified = true WHERE id = ?`,
+    [userID],
     (error, results, fields) => {
       if(!error){
         resolve();
@@ -143,7 +154,8 @@ function _mailExistAndVerified(email){
   connection.connect();
   return new Promise((resolve, reject) => {
     connection.query(`\
-    SELECT id, email FROM users WHERE email='${email}' AND verified=true`,
+    SELECT id, email FROM users WHERE email=? AND verified=true`,
+    [email],
     (error, results, fields) => {
       if(!error){
         if(results[0]['email'] == email){
@@ -163,7 +175,8 @@ function _updatePassword(id, password){
   connection.connect();
   return new Promise((resolve, reject) => {
     connection.query(`\
-    UPDATE users SET password='${password}' WHERE id=${id}`,
+    UPDATE users SET password=? WHERE id=?`,
+    [password, id],
     (error, results, fields) => {
       if(!error){
         connection.query(`\
@@ -182,6 +195,62 @@ function _updatePassword(id, password){
   })
 }
 
+//---------------------------------------------------------
+//                          GAME
+//---------------------------------------------------------
+
+async function _gameList(){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.connect();
+    connection.query(
+    `SELECT id, title, link_tdg, players, playtime, age, gamebgg_id FROM game`,
+    (error, results, fields) => {
+      if(!error){
+        let games = new Array();
+        for(result of results){
+          games.push(new GameQuery(result));
+        }
+        resolve(games);
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing gamelist query" + error
+        });
+      }
+    });//end of query
+  });//end of promise
+}
+
+async function _addGame(game){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.connect();
+    connection.query(
+    `INSERT INTO game (title, link_tdg, players, playtime, age, gamebgg_id) VALUES (?,?,?,?,?,?)`,
+    [game.title, game.link_tdg, game.players, game.playtime, game.age, game.gamebgg_id],
+    (error, results, fields) => {
+      if(!error){
+        if(results.affectedRows === 1){
+          resolve(results.insertId);
+        }else{
+          reject({
+            reason: "Errore interno al server, riprova più tardi",
+            debug: "[MYSQL] More or less than 1 row affected " + results.affectedRows
+          })
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing insert game query" + error
+        });
+      }
+    });//end of query
+  });//end of promise
+}
+
 const SQL = {
   login: _login,
   register: _register,
@@ -190,7 +259,9 @@ const SQL = {
   mailExistAndVerified: _mailExistAndVerified,
   updatePassword: _updatePassword,
   updateEmail: _updateEmail,
-  mailExist: _mailExist
+  mailExist: _mailExist,
+  addGame: _addGame,
+  gameList: _gameList
 };
 
 module.exports = SQL;

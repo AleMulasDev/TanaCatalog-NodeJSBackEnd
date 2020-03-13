@@ -1,7 +1,7 @@
 var express = require("express");
 var path = require("path");
 var cookieParser = require("cookie-parser");
-// var logger = require('morgan');
+var logger = require('morgan');
 var bodyParser = require("body-parser");
 var cors = require("cors");
 
@@ -11,12 +11,13 @@ var verifyRouter = require("./routes/Users/verify");
 var recoverRouter = require("./routes/Users/recover");
 var changeRouter = require("./routes/Users/change");
 var changeEmailRouter = require("./routes/Users/changeEmail");
+var gameRouter = require("./routes/game");
 
 const constant = require("./utils/constant");
 
 var app = express();
 
-// app.use(logger('dev'));
+app.use(logger('tiny'));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -41,6 +42,7 @@ app.use(constant.VERIFY_PATH, verifyRouter);
 app.use(constant.RECOVER_PATH, recoverRouter);
 app.use(constant.CHANGE_PATH, changeRouter);
 app.use(constant.CHANGE_EMAIL_PATH, changeEmailRouter);
+app.use(constant.BASE_PATH_GAMES, gameRouter);
 
 console.log("Listening on: " + constant.LOGIN_PATH);
 console.log("Listening on: " + constant.REGISTER_PATH);
@@ -48,5 +50,6 @@ console.log("Listening on: " + constant.VERIFY_PATH);
 console.log("Listening on: " + constant.RECOVER_PATH);
 console.log("Listening on: " + constant.CHANGE_PATH);
 console.log("Listening on: " + constant.CHANGE_EMAIL_PATH);
+console.log("Listening on: " + constant.BASE_PATH_GAMES);
 
 module.exports = app;

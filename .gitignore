@@ -113,3 +113,5 @@ _keys/*
 
 #Proof of concepts that are too early to commit
 installer/*
+
+__test__.js
