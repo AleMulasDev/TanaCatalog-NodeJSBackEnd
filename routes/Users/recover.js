@@ -50,24 +50,42 @@ router.get("/", function (req, res, next) {
                         })
                       }
                     }).catch(err => {
-                      console.error(err);
-                      res.sendStatus(500);
+                      // sql update password error
+                      res.json({
+                        error: err.reason
+                      });
+                      utils.logDebug('recover-GET endpoint', `Sql update password: \n${err.debug}`);
                     })
                   }else{
-                    res.sendStatus(500);
+                    //bcrypt hash error
+                    res.json({
+                      error: 'C\'è stato un problema interno nel server'
+                    });
+                    utils.logDebug('recover-GET endpoint', `Bcrypt hash error: \n${err}`);
                   }
                 })
               }else{
                 //expired token
-                res.send("Expired token");
+                res.json({
+                  error: 'La tua chiave di sessione è scaduta'
+                });
+                utils.logDebug('recover-GET endpoint', `Expired token received: \n${err}`);
               }
             }
           }else{
-            res.sendStatus(400);
+            //jwt verify error
+            res.json({
+              error: 'C\'è stato un problema interno nel server'
+            });
+            utils.logDebug('recover-GET endpoint', `Jwt verify error: \n${err}`);
           }
         })
       }else{
-        res.sendStatus(500);
+        // error reading pub key
+        res.json({
+          error: 'C\'è stato un problema interno nel server'
+        });
+        utils.logDebug('recover-GET endpoint', `Error reading pub key: \n${err}`);
       }
     })
   }else{
@@ -106,16 +124,27 @@ router.post("/", function(req, res, next) {
                 })
               }
             }else{
-              res.sendStatus(500);
+              // jwt sign error
+              res.json({
+                error: 'C\'è stato un problema interno nel server'
+              });
+              utils.logDebug('recover-POST endpoint', `Jwt sign error: \n${err}`);
             }
           })
         }else{
-          res.sendStatus(500);
+          // privkey read error
+          res.json({
+            error: 'C\'è stato un problema interno nel server'
+          });
+          utils.logDebug('recover-POST endpoint', `privkey read error: \n${err}`);
         }
       })
     }).catch(err =>{
-      console.error(err);
-      res.send("Invalid email, make sure it's the right one and it was verified");
+      // sql mailExistAndVerified
+      res.json({
+        error: err.reason
+      });
+      utils.logDebug('recover-GET endpoint', `Sql mail exist and verified: \n${err.debug}`);
     })
   }else{
     res.json({

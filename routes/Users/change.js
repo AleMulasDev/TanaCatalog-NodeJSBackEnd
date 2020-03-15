@@ -1,58 +1,22 @@
 var express = require("express");
 var router = express.Router();
 const bcrypt = require("bcrypt");
-var jwt = require("jsonwebtoken");
-var fs = require("fs");
 var SQL = require("../../utils/sql");
-var moment = require("moment");
 const utils = require("../../utils/utils");
 
-async function retrieveEmail(token){
-  return new Promise((resolve, reject) => {
-    fs.readFile('_keys/jwtRS256.key.pub', (err, pubKey) => {
-      if(!err){
-        jwt.verify(token, pubKey, (err, decoded) =>{
-          if(!err){
-            if(decoded.id && decoded.expiration){
-              let exp = moment(decoded.expiration);
-              let now = moment();
-              if(now.isBefore(exp)){
-                resolve(decoded.email);
-              }else{
-                //expired token
-                reject({
-                  error: 'La tua sessione è scaduta, rilogga'
-                })
-              }
-            }
-          }else{
-            reject({
-              error: 'Ricevuta chiave di sessione errata'
-            })
-          }
-        })
-      }else{
-        reject({
-          error: 'Errore interno al server, riprova più tardi'
-        })
-      }
-    })
-  })
-}
 
 router.post("/", async function(req, res, next) {
   let email = req.body.email ? req.body.email : undefined;
   if(req.body.token && !email){
-
-    let token = req.body.token;
-
     try{
-    email = await retrieveEmail(token);
+    let user = await utils.retrieveUser(req.body.token);
+    let email = user.email
     }catch(err){
-      console.error(err);
-      res.json(err);
+      utils.logDebug('change endpoint',err.debug);
+      res.json({
+        error: err
+      });
     }
-
   }
   req.body.email = email;
   
@@ -75,21 +39,22 @@ router.post("/", async function(req, res, next) {
                     .then(value => {
                       res.json({
                         status: 'ok',
-                        success: `Password aggiornata con successo per la mail: ${value}`,
-                        email: value
+                        success: `Password aggiornata con successo per la mail: ${value}`
                       });
                     })
                     .catch(err => {
                       //sql update password error
                       res.json({
-                        error: 'Errore interno al server, riprova più tardi'
+                        error: err.reason
                       });
+                      utils.logDebug('change endpoint', err.debug);
                     });
                 } else {
                   //bcrypt hash error
                   res.json({
                     error: 'Errore interno al server, riprova più tardi'
                   });
+                  utils.logDebug('change endpoint', `Brypt hash: \n${err}`);
                 }
               });
             } else {
@@ -97,11 +62,13 @@ router.post("/", async function(req, res, next) {
               res.json({
                 error: "La vecchia password è sbagliata"
               });
+              utils.logDebug('change endpoint', `Password doesn't match`);
             }
           } else {
             res.json({
               error: 'Errore interno al server, riprova più tardi'
             });
+            utils.logDebug('change endpoint', `Brypt compare: \n${err}`);
           }
         });
       })
@@ -109,6 +76,7 @@ router.post("/", async function(req, res, next) {
         res.json({
           error: err.reason
         });
+        utils.logDebug('change endpoint', `SQL login: \n${err.debug}`);
       });
   } else {
     res.json({

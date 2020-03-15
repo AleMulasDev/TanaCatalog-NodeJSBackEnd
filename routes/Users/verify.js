@@ -19,29 +19,53 @@ router.get('/', (req, res, next) => {
               let exp = moment(decoded.expiration);
               let now = moment();
               if(now.isBefore(exp)){
-                SQL.verify(decoded.id);
-                //TODO then/catch
-                if(req.query.redirect){
-                  let redirect = decodeURIComponent(req.query.redirect);
-                  redirect = redirect.indexOf('http') >= 0 ? redirect : `http://${redirect}`;
-                  res.writeHead(302, {
-                    'Location': redirect
+                SQL.verify(decoded.id).then(() => {
+                  if(req.query.redirect){
+                    let redirect = decodeURIComponent(req.query.redirect);
+                    redirect = redirect.indexOf('http') >= 0 ? redirect : `http://${redirect}`;
+                    res.writeHead(302, {
+                      'Location': redirect
+                    });
+                    res.end();
+                  }else{
+                    res.send("Mail verified correctly");
+                  }
+                }).catch(err => {
+                  //sql verify error
+                  res.json({
+                    error: error.reason
                   });
-                  res.end();
-                }else{
-                  res.send("Mail verified correctly");
-                }
+                  utils.logDebug('verify endpoint', `Sql verify error: \n${err.debug}`);
+                })
+                
               }else{
                 //expired token
-                res.send("Expired token");
+                res.json({
+                  error: 'Ricevuta chiave di sessione scaduta'
+                });
+                utils.logDebug('verify endpoint', `expired token`);
               }
+            }else{
+              //bad token
+              res.json({
+                error: 'Ricevuta chiave di sessione errata'
+              });
+              utils.logDebug('verify endpoint', `bad token received ${JSON.stringify(decoded)}`);
             }
           }else{
-            res.sendStatus(400);
+            //jwt verify error
+            res.json({
+              error: 'Errore interno al server, riprova più tardi'
+            });
+            utils.logDebug('verify endpoint', `jwt verify error: \n${err}`);
           }
         })
       }else{
-        res.sendStatus(500);
+        //pubkey read error
+        res.json({
+          error: 'Errore interno al server, riprova più tardi'
+        });
+        utils.logDebug('verify endpoint', `pubkey read error: \n${err}`);
       }
     })
   }else{

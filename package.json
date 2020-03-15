@@ -4,12 +4,13 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "initMysql" : "node ./installer/initSql.js"
+    "initMysql": "node ./installer/initSql.js"
   },
   "dependencies": {
     "@sendgrid/mail": "^6.5.3",
     "bcrypt": "^3.0.8",
     "body-parser": "^1.19.0",
+    "chalk": "^3.0.0",
     "cookie-parser": "~1.4.4",
     "cors": "^2.8.5",
     "debug": "~2.6.9",
@@ -20,7 +21,8 @@
     "morgan": "~1.9.1",
     "mysql": "github:mysqljs/mysql",
     "nodemailer": "^6.4.2",
-    "oidc-provider": "^6.20.3"
+    "oidc-provider": "^6.20.3",
+    "xml2js": "^0.4.23"
   },
   "devDependencies": {
     "moment": "^2.24.0"

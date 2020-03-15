@@ -22,9 +22,7 @@ async function verifyEmail(email, redirect){
       fs.readFile("_keys/jwtRS256.key", (err, privkey) => {
         if (!err) {
           jwt.sign( toTokenize, privkey, { algorithm: "RS256" }, (err, token) => {
-              if(err){
-                reject(err);
-              }
+            if(!err){
               if(redirect){
                 mail.confirmMail(email, token, redirect);
                 resolve({
@@ -38,15 +36,26 @@ async function verifyEmail(email, redirect){
                   success: `Registrato con successo, controlla la tua email`
                 })
               }
-              
+            }else{
+              //jwt sign error
+              reject({
+                reason: "Errore interno al server, riprova più tardi",
+                debug: `[VERIFYEMAIL] Error in jwt sign: ${err}`
+              })
             }
-          );
+          });
         } else {
-          reject(err);
+          //privkey read error
+          reject({
+            reason: "Errore interno al server, riprova più tardi",
+            debug: `[VERIFYEMAIL] privkey read error: ${err}`
+          })
         }
       });
     }).catch(err => {
-      reject(err);
+      res.json({
+        err
+      });
     })
   })
 }
@@ -79,49 +88,57 @@ router.post("/", async function(req, res, next) {
                         status: "ok"
                       })
                     }catch(err){
-                      console.error(`Verify email error: \n${err}`);
                       res.json({
-                        error: "Errore interno al server, riprova più tardi"
+                        error: err.reason ? err.reason : 'Errore interno al server, riprova più tardi'
                       })
+                      utils.logDebug('changeEmail endpoint', `Verify email error: \n${err.debug ? err.debug : err}`);
                     }
                   }).catch(err=>{
                     // SQL update email error
-                    console.error(`SQL update email error: \n${err}`);
                     res.json({
-                      error: 'Errore interno al server, riprova più tardi'
-                    });
+                      error: err.reason
+                    })
+                    utils.logDebug('changeEmail endpoint', `Verify email error: \n${err.debug}`);
                   })
                 } else {
                   //Password doesn't match
                   res.json({
                     error: "La vecchia password è sbagliata"
                   });
+                  utils.logDebug('changeEmail endpoint', `Password doesn't match`);
                 }
               } else {
+                //bcrypt error
                 res.json({
                   error: 'Errore interno al server, riprova più tardi'
                 });
+                utils.logDebug('changeEmail endpoint', `Brypt compare: \n${err}`);
               }
             });
           }else{
+            //mail alredy exist
             res.json({
               error: "La nuova mail è già in uso"
             });
+            utils.logDebug('changeEmail endpoint', `Mail alredy exist`);
           }
         }catch(err){
-          console.error(`Mail alredy Exist error: \n${err}`);
+          // mailExist catch
           res.json({
-            error: 'Errore interno al server, riprova più tardi'
+            error: err.reason ? err.reason : 'Errore interno al server, riprova più tardi'
           })
+          utils.logDebug('changeEmail endpoint', `Mail exist error: \n${err.debug ? err.debug : err}`);
         }
       })
       .catch(err => {
-        console.error(`SQL login error: \n${err}`);
+        // login error
         res.json({
-          error: 'Errore interno al server, riprova più tardi'
-        });
+          error: err.reason
+        })
+        utils.logDebug('changeEmail endpoint', `Login error: \n${err.debug}`);
       })
   } else {
+    //bad request
     res.json({
       error: requestError
     });

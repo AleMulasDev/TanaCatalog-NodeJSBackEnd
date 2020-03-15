@@ -34,46 +34,48 @@ router.post("/", function(req, res, next) {
                   jwt.sign(user, privkey, { algorithm: "RS256" }, (err, token) => {
                     if (!err) {
                       res.json({
+                        status: 'ok',
                         token: token
                       });
                     } else {
                       // error signing the jwt
                       res.json({
-                        error: 'C\'è stato un problema interno nel server',
-                        token: null
+                        error: 'C\'è stato un problema interno nel server'
                       });
+                      utils.logDebug('login endpoint', `Error signing the jwt: \n${err}`);
                     }
                   });
                 } else {
                   // error reading private key's file
                   res.json({
-                    error: 'C\'è stato un problema interno nel server',
-                    token: null
+                    error: 'C\'è stato un problema interno nel server'
                   });
+                  utils.logDebug('login endpoint', `Error reading key: \n${err}`);
                 }
               });
             } else {
               // password incorrect
               res.json({
-                error: 'Password errata',
-                token: null
+                error: 'Password errata'
               });
+              utils.logDebug('login endpoint', `Password doesn't match`);
             }
           } else {
             // BCrypt compare error
             res.sendStatus(500);
             res.json({
-              error: 'Errore interno al server',
-              token: null
+              error: 'Errore interno al server, riprova più tardi'
             });
+            utils.logDebug('login endpoint', `Bcrypt compare error: \n${err}`);
           }
         });
       })
-      .catch(error => {
-        if(utils.debug) console.error(error.debug);
+      .catch(err => {
+        //sql login error
         res.json({
-          error: error.reason
+          error: err.reason
         });
+        utils.logDebug('login endpoint', `Sql login error: \n${err.debug}`);
       });
   } else {
     res.json({error: requestError});

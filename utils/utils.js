@@ -1,10 +1,17 @@
 const constants = require("./constant");
 const mail = require("./mail.js");
 const SQL = require("./sql");
+const bcrypt = require("bcrypt");
+var jwt = require("jsonwebtoken");
+var fs = require("fs");
+var moment = require("moment");
+const chalk = require('chalk');
 
 const emailRegex = /^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i;
 const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()+_\-=}{[\]|:;"\/?.><,`~])[A-Za-z\d!@#$%^&*()+_\-=}{[\]|:;"\/?.><,`~]{8,}$/;
 var nameRegex = /^[a-z ,.'-]+$/i;
+
+const debug = process.env.debug ? process.env.debug : true;
 
 let utils = {
   constants,
@@ -14,7 +21,10 @@ let utils = {
   passRegex,
   nameRegex,
   checkRequest,
-  debug: true
+  retrieveUser,
+  logDebug,
+  logInteraction,
+  debug
 }
 
 /**
@@ -67,6 +77,64 @@ function checkRequest(request, check, ...parameters_to_check){
   }
 
   return error;
+}
+
+/**
+ * 
+ * @param {string} token - Session's token 
+ */
+async function retrieveUser(token){
+  return new Promise((resolve, reject) => {
+    fs.readFile('_keys/jwtRS256.key.pub', (err, pubKey) => {
+      if(!err){
+        jwt.verify(token, pubKey, (err, decoded) =>{
+          if(!err){
+            if(decoded.id && decoded.expiration && decoded.email){
+              let exp = moment(decoded.expiration);
+              let now = moment();
+              if(now.isBefore(exp)){
+                resolve({
+                  email: decoded.email,
+                  id: decoded.id
+                });
+              }else{
+                //expired token
+                reject({
+                  error: 'La tua sessione è scaduta, rilogga',
+                  debug: 'Received expired token'
+                })
+              }
+            }else{
+              reject({
+                error: 'Chiave di sessione errata o corrotta, rilogga',
+                debug: 'Found token without the required parameters'
+              })
+            }
+          }else{
+            reject({
+              error: 'Ricevuta chiave di sessione errata',
+              debug: 'Failed to verify a token'
+            })
+          }
+        })
+      }else{
+        reject({
+          error: 'Errore interno al server, riprova più tardi',
+          debug: 'Error reading public key\'s file'
+        })
+      }
+    })
+  })
+}
+
+function logDebug(caller, message){
+  if(debug){
+    console.log(chalk.white.bgRed.bold(`[${caller.toUpperCase()}]`) + " - " + chalk.red(message));
+  }
+}
+
+function logInteraction(caller, interaction){
+  console.log(chalk.white.bgBlue(`[${caller.toUpperCase()}]`) + " - " + chalk.cyanBright(interaction));
 }
 
 module.exports = utils;

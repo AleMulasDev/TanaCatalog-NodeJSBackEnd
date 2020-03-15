@@ -8,7 +8,10 @@ var SQL = utils.SQL;
 router.get('/', async function(req, res, next) {
   try{
     let games = await SQL.gameList();
-    res.json(games);
+    res.json({
+      status: "ok",
+      games: games
+    });
   }catch(err){
     res.json({
       error: err.reason ? err.reason : "Errore interno al server"
@@ -19,9 +22,11 @@ router.get('/', async function(req, res, next) {
 //add new game
 router.post('/', async function(req, res, next) {
   let requestError = utils.checkRequest(req, 'body', 
-    {name: 'title', isGame: true}
+    {name: 'title', isGame: true},
+    {name: 'token'}
   );
   if(!requestError){
+    let user = await utils.retrieveUser(req.body.token);
     let game = new Game(req.body);
     try{
       let success = await SQL.addGame(game);
@@ -29,6 +34,7 @@ router.post('/', async function(req, res, next) {
       res.json({
         status: "ok"
       })
+      logInteraction('GameAdd', `${user.email} added a game`);
     }catch(err){
       res.json({error: err.reason ? err.reason : "Errore interno al server"});
     }

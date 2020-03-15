@@ -27,14 +27,14 @@ async function _login(email) {
         if (error) {
           //Mysql error
           reject({
-            reason: "Errore nella connessione al database interno",
-            debug: `[MYSQL] ${error}`
-          });
+            reason: "Errore interno al server, riprova più tardi",
+            debug: `[MYSQL] Error in the login: ${error}`
+          })
         } else {
           if (results.length != 1) {
             reject({
-              reason: "Email o password errati",
-              debug: "[MYSQL] More than one result"
+              reason: "Email o password errati. Assicurati anche di aver verificato la mail prima di loggare",
+              debug: "[MYSQL] Not exactly one result: obtained " + results.length
             });
           } else {
             resolve({
@@ -60,7 +60,10 @@ async function _updateEmail(oldEmail, newEmail){
       if(!error){
         resolve();
       }else{
-        reject(error);
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error in the updateEmail: ${error}`
+        })
       }
     })
   })
@@ -76,11 +79,13 @@ async function _register(email, password, firstname, lastname){
     [email, password, firstname, lastname],
     (error, results, fields) => {
       if(!error){
-        resolve();
+        resolve(results.insertId);
       }else{
         //error executing query
-        console.log(`Error executing query: ${error}`)
-        reject();
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error in the register: ${error}`
+        })
       }
     });//end of query
   });//end of promise
@@ -102,7 +107,10 @@ async function _mailExist(email){
         }
       }else{
         //error executing query
-        reject('Error executing query ' + error);
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error in the mailExist: ${error}`
+        })
       }
     });//end of query
   });
@@ -117,16 +125,13 @@ async function _getUserId(email){
     [email],
     (error, results, fields) => {
       if(!error){
-        if(results.length == 0){
-          reject({
-            length: 0
-          });
-        }else{
-          resolve(results[0]['id']);
-        }
+        resolve(results[0]['id']);
       }else{
         //error executing query
-        reject('Error executing query ' + error);
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error in the getUserId: ${error}`
+        })
       }
     });//end of query
   });//end of promise
@@ -141,9 +146,21 @@ function _verify(userID){
     [userID],
     (error, results, fields) => {
       if(!error){
-        resolve();
+        if(results.affectedRows === 1){
+          resolve(results.insertId);
+        }else{
+          reject({
+            // It MUST be alredy verified since the id comes from an encrypted token and
+            // therefore it's trusted
+            reason: "Mail già verificata",
+            debug: "[MYSQL] More or less than 1 row affected " + results.affectedRows
+          })
+        }
       }else{
-        reject(error);
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error in the verify: ${error}`
+        })
       }
     })
   })
@@ -161,10 +178,16 @@ function _mailExistAndVerified(email){
         if(results[0]['email'] == email){
           resolve(results[0]['id']);
         }else{
-          reject("This email doesn't exist or isn't verified");
+          reject({
+            reason: "Email inesistente o non verificata",
+            debug: `[MYSQL] Received invalid email: Received: ${email}\nSQL: ${results[0]['email']}`
+          })
         }
       }else{
-        reject(error);
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error in the mailExistAndVerified: ${error}`
+        })
       }
     })
   })
@@ -180,16 +203,23 @@ function _updatePassword(id, password){
     (error, results, fields) => {
       if(!error){
         connection.query(`\
-        SELECT email FROM users WHERE id=${id}`,
+        SELECT email FROM users WHERE id=?`,
+        [id],
         (error2, results2, fields2) =>{
           if(!error2 && results2[0]['email']){
             resolve(results2[0]['email']);
           }else{
-            reject(error2);
+            reject({
+              reason: "Errore interno al server, riprova più tardi",
+              debug: `[MYSQL] Error in the second query of updatePassword:\n${error2}\nresult: ${results2[0]['email']}`
+            })
           }
         });//end second query
       }else{
-        reject(error);
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error in the first query of updatePassword:\n${error}`
+        })
       }
     })
   })

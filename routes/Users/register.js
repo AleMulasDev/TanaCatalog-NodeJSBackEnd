@@ -23,59 +23,72 @@ router.post("/", function(req, res, next) {
           password,
           req.body.firstname,
           req.body.lastname
-        )
-          .then(() => {
-            //If registered, get user id
-            SQL.getUserId(req.body.email)
-              .then(userID => {
-                let now = moment();
-                let expirDate = now.add(1, "h");
-                let jsExpirDate = expirDate.toDate();
-                let toTokenize = {
-                  id: userID,
-                  expiration: jsExpirDate.toISOString()
-                };
-                fs.readFile("_keys/jwtRS256.key", (err, privkey) => {
-                  if (!err) {
-                    jwt.sign(
-                      toTokenize,
-                      privkey,
-                      { algorithm: "RS256" },
-                      function(err, token) {
-                        //TODO check err
-                        if(req.body.redirect){
-                          mail.confirmMail(req.body.email, token, req.body.redirect);
-                          res.json({
-                            status: "ok",
-                            success: `Registrato con successo, controlla la tua email`
-                          })
-                        }else{
-                          mail.confirmMail(req.body.email, token);
-                          res.json({
-                            status: "ok",
-                            success: `Registrato con successo, controlla la tua email`
-                          })
-                        }
-                        
+        ).then(() => {
+          //If registered, get user id
+          SQL.getUserId(req.body.email)
+            .then(userID => {
+              let now = moment();
+              let expirDate = now.add(1, "h");
+              let jsExpirDate = expirDate.toDate();
+              let toTokenize = {
+                id: userID,
+                expiration: jsExpirDate.toISOString()
+              };
+              fs.readFile("_keys/jwtRS256.key", (err, privkey) => {
+                if (!err) {
+                  jwt.sign( toTokenize, privkey, { algorithm: "RS256" }, function(err, token) {
+                    if(!err){
+                      if(req.body.redirect){
+                        mail.confirmMail(req.body.email, token, req.body.redirect);
+                        res.json({
+                          status: "ok",
+                          success: `Registrato con successo, controlla la tua email`
+                        })
+                      }else{
+                        mail.confirmMail(req.body.email, token);
+                        res.json({
+                          status: "ok",
+                          success: `Registrato con successo, controlla la tua email`
+                        })
                       }
-                    );
-                  } else {
-                    res.sendStatus(500);
-                  }
-                });
-              })
-              .catch(err => {
-                res.sendStatus(500);
+                    }else{
+                      //jwt sign error
+                      res.json({
+                        error: 'Errore interno al server, riprova più tardi'
+                      });
+                      utils.logDebug('register endpoint', `jwt sign error: \n${err}`);
+                    }
+                  });
+                } else {
+                  // privkey read error
+                  res.json({
+                    error: 'Errore interno al server, riprova più tardi'
+                  });
+                  utils.logDebug('register endpoint', `privkey read error: \n${err}`);
+                }
               });
-          })
-          .catch(err => {
-            res.sendStatus(500);
+            }).catch(err => {
+              //sql getUserId error
+              res.json({
+                error: error.reason
+              });
+              utils.logDebug('register endpoint', `Sql getUserId error: \n${err.debug}`);
+            });
+          }).catch(err => {
+            //sql register error
+            res.json({
+              error: error.reason
+            });
+            utils.logDebug('register endpoint', `Sql register error: \n${err.debug}`);
           });
       } else {
-        //error creating password's hash
-        res.sendStatus(500);
+        //bcrypt hash error
+        res.json({
+          error: 'Errore interno al server, riprova più tardi'
+        });
+        utils.logDebug('register endpoint', `bcrypt hash error: \n${err}`);
       }
-    }); //end of bcrypt hash function
+    });
   } else {
     //invalid data
     res.json({
