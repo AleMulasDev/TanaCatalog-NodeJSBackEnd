@@ -115,5 +115,6 @@ _keys/*
 installer/*
 
 __test__.js
-imagesUploaded/
+routes/imagesUploaded/*
+!routes/imagesUploaded/getImages.js
 tmp/
