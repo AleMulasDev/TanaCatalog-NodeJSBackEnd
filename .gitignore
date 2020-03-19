@@ -115,3 +115,5 @@ _keys/*
 installer/*
 
 __test__.js
+imagesUploaded/
+tmp/

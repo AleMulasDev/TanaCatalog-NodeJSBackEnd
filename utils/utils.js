@@ -1,15 +1,17 @@
 const constants = require("./constant");
 const mail = require("./mail.js");
 const SQL = require("./sql");
-const bcrypt = require("bcrypt");
 var jwt = require("jsonwebtoken");
 var fs = require("fs");
 var moment = require("moment");
 const chalk = require('chalk');
 
+
 const emailRegex = /^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i;
 const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()+_\-=}{[\]|:;"\/?.><,`~])[A-Za-z\d!@#$%^&*()+_\-=}{[\]|:;"\/?.><,`~]{8,}$/;
-var nameRegex = /^[a-z ,.'-]+$/i;
+const nameRegex = /^[a-z ,.'-]+$/i;
+const bggIdRegex = /^\d+$/;
+const imageRegex = /^(THUMB_)?[A-Za-z0-9]{32}.(jpg|png|jpeg)$/i;
 
 const debug = process.env.debug ? process.env.debug : true;
 
@@ -20,10 +22,12 @@ let utils = {
   emailRegex,
   passRegex,
   nameRegex,
+  imageRegex,
   checkRequest,
   retrieveUser,
   logDebug,
   logInteraction,
+  encodeQueryData,
   debug
 }
 
@@ -46,7 +50,7 @@ function checkRequest(request, check, ...parameters_to_check){
   for(p of parameters_to_check){
     if(!p.name || !r[check][p.name]){
       let e = 'Non tutti i parametri necessari sono stati compilati e/o inviati al server';
-      console.log(`name: ` + p.name)
+      logDebug('check request', `Missing parameter: ` + p.name)
       error = error ? error += `\n${e}` : e;
       break;
     }
@@ -73,6 +77,28 @@ function checkRequest(request, check, ...parameters_to_check){
     }
     if(p.isGame){
       //TODO
+    }
+    if(p.isBggId){
+      let arr = new Array();
+      if(Array.isArray(r[check][p.name])){
+        arr = r[check][p.name];
+      }else{
+        if(r[check][p.name].indexOf(',') > 0){
+          for(let id of r[check][p.name].split(",")){
+            arr.push(id);
+          }
+        }else{
+          arr.push(r[check][p.name])
+        }
+      }
+      for(let id of arr){
+        if(!bggIdRegex.test(id)){
+          let e = 'Id di gioco BoardGameGeek non valido';
+          error = error ? error += `\n${e}` : e;
+          break;
+        }
+      }
+      
     }
   }
 
@@ -125,6 +151,14 @@ async function retrieveUser(token){
       }
     })
   })
+}
+
+
+function encodeQueryData(data) {
+  const ret = [];
+  for (let d in data)
+    ret.push(encodeURIComponent(d) + '=' + encodeURIComponent(data[d]));
+  return ret.join('&');
 }
 
 function logDebug(caller, message){

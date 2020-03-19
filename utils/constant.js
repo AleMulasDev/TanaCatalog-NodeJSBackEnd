@@ -11,7 +11,6 @@ for example FROM_EMAIL_ADDRESS = 'no-reply@example.com'
 let SERVER_ADDRESS = `localhost:4000`;
 let BASE_PATH= process.env.BASE_PATH ? process.env.BASE_PATH : "/api/tana";
 let BASE_PATH_USERS= `${BASE_PATH}/users`;
-let BASE_PATH_GAMES = `${BASE_PATH}/games`;
 let LOGIN_PATH= `${BASE_PATH_USERS}/login`;
 let REGISTER_PATH= `${BASE_PATH_USERS}/register`;
 let RECOVER_PATH= `${BASE_PATH_USERS}/recover`;
@@ -22,12 +21,20 @@ let MAIL_VERIFY_PATH= `http://${SERVER_ADDRESS}${VERIFY_PATH}`;
 let MAIL_RECOVER_PATH= `http://${SERVER_ADDRESS}${RECOVER_PATH}`;
 let MYSQL_ADDRESS= `192.168.99.100`;
 let FROM_EMAIL_ADDRESS = process.env.FROM_EMAIL_ADDRESS ? process.env.FROM_EMAIL_ADDRESS : `no-reply@alessandro-mulas.it`;
+let IMAGES_UPLOADED = `${BASE_PATH}/imagesUploaded/`;
+
+let BASE_PATH_GAMES = `${BASE_PATH}/games`;
+let SEARCHBGG_GAME_PATH = `${BASE_PATH}/searchBgg`;
+let FETCHBGG_GAME_PATH = `${BASE_PATH}/fetchBgg`;
+
+const BGG_BASE_PATH = `http://boardgamegeek.com/xmlapi`;
+const BGG_SEARCH_PATH = `${BGG_BASE_PATH}/search`;
+const BGG_FETCHGAME_PATH = `${BGG_BASE_PATH}/boardgame/`;
 
 const constant = {
   SERVER_ADDRESS,
   BASE_PATH,
   BASE_PATH_USERS,
-  BASE_PATH_GAMES,
   LOGIN_PATH,
   REGISTER_PATH,
   RECOVER_PATH,
@@ -37,7 +44,18 @@ const constant = {
   MAIL_VERIFY_PATH,
   MAIL_RECOVER_PATH,
   MYSQL_ADDRESS,
-  FROM_EMAIL_ADDRESS
+  FROM_EMAIL_ADDRESS,
+  IMAGES_UPLOADED,
+
+  BASE_PATH_GAMES,
+  SEARCHBGG_GAME_PATH,
+  FETCHBGG_GAME_PATH,
+
+  bgg: {
+    BGG_BASE_PATH,
+    BGG_SEARCH_PATH,
+    BGG_FETCHGAME_PATH
+  }
 };
 
 module.exports = constant;
