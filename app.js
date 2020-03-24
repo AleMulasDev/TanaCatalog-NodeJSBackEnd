@@ -21,6 +21,8 @@ var gameRouter = require("./routes/game");
 var searchbggRouter = require("./routes/game/searchbgg");
 var fetchbggRouter = require("./routes/game/fetchbgg");
 
+var sectionsRouter = require("./routes/section"); 
+
 const constant = require("./utils/constant");
 
 var app = express();
@@ -63,6 +65,7 @@ app.use(constant.CHANGE_EMAIL_PATH, changeEmailRouter);
 app.use(constant.BASE_PATH_GAMES, gameRouter);
 app.use(constant.SEARCHBGG_GAME_PATH, searchbggRouter);
 app.use(constant.FETCHBGG_GAME_PATH, fetchbggRouter);
+app.use(constant.BASE_PATH_SECTIONS, sectionsRouter);
 
 app.use(constant.IMAGES_UPLOADED, imageRouter);
 
@@ -75,6 +78,7 @@ console.log("Listening on: " + constant.CHANGE_EMAIL_PATH);
 console.log("Listening on: " + constant.BASE_PATH_GAMES);
 console.log("Listening on: " + constant.SEARCHBGG_GAME_PATH);
 console.log("Listening on: " + constant.FETCHBGG_GAME_PATH);
+console.log("Listening on: " + constant.BASE_PATH_SECTIONS);
 
 console.log("Listening on: " + constant.IMAGES_UPLOADED);
 

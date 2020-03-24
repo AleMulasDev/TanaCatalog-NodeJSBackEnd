@@ -139,14 +139,14 @@ async function retrieveUser(token){
           }else{
             reject({
               error: 'Ricevuta chiave di sessione errata',
-              debug: 'Failed to verify a token'
+              debug: 'Failed to verify a token: ' + err
             })
           }
         })
       }else{
         reject({
           error: 'Errore interno al server, riprova più tardi',
-          debug: 'Error reading public key\'s file'
+          debug: 'Error reading public key\'s file: ' + err
         })
       }
     })

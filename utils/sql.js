@@ -251,7 +251,7 @@ async function _userIsWhitelist(id){
         //error executing query
         reject({
           reason: "Errore interno al server, riprova più tardi",
-          debug: "[MYSQL] Error executing gameIsUsed" + error
+          debug: "[MYSQL] Error executing userIsWhitelist " + error
         });
       }
     })
@@ -279,7 +279,7 @@ async function _gameList(){
         //error executing query
         reject({
           reason: "Errore interno al server, riprova più tardi",
-          debug: "[MYSQL] Error executing gamelist query" + error
+          debug: "[MYSQL] Error executing gamelist query " + error
         });
       }
     });//end of query
@@ -307,7 +307,7 @@ async function _addGame(game){
         //error executing query
         reject({
           reason: "Errore interno al server, riprova più tardi",
-          debug: "[MYSQL] Error executing insert game query" + error
+          debug: "[MYSQL] Error executing insert game query " + error
         });
       }
     });//end of query
@@ -332,7 +332,7 @@ async function _gameIsUsed(id){
         //error executing query
         reject({
           reason: "Errore interno al server, riprova più tardi",
-          debug: "[MYSQL] Error executing gameIsUsed" + error
+          debug: "[MYSQL] Error executing gameIsUsed " + error
         });
       }
     })
@@ -358,7 +358,7 @@ async function _getGame(id){
         //error executing query
         reject({
           reason: "Errore interno al server, riprova più tardi",
-          debug: "[MYSQL] Error executing getGame" + error
+          debug: "[MYSQL] Error executing getGame " + error
         });
       }
     })
@@ -386,7 +386,7 @@ async function _deleteGame(id){
         //error executing query
         reject({
           reason: "Errore interno al server, riprova più tardi",
-          debug: "[MYSQL] Error executing getGame" + error
+          debug: "[MYSQL] Error executing getGame " + error
         });
       }
     })
@@ -414,7 +414,7 @@ async function _updateGame(id, game){
         //error executing query
         reject({
           reason: "Errore interno al server, riprova più tardi",
-          debug: "[MYSQL] Error executing updateGame" + error
+          debug: "[MYSQL] Error executing updateGame " + error
         });
       }
     })
@@ -427,7 +427,6 @@ async function _updateGame(id, game){
 async function _addSection(title, ownerId){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
-    //connection.connect();
     connection.query(
     `INSERT INTO sections (title) VALUES (?)`,
     [title],
@@ -438,26 +437,19 @@ async function _addSection(title, ownerId){
           let sectionId = results.insertId;
           connection.query(
             `INSERT INTO permissions (user_id,section_id,
-            can_add_game,can_delete_game,can_update_game,can_add_people,can_modify_permission,is_owner) VALUES (?,?,true,true,true,true,true,true)`,
+            can_add_game,can_delete_game,can_update_game,can_add_people,can_modify_permissions,is_owner) VALUES (?,?,true,true,true,true,true,true)`,
             [ownerId,sectionId],
             (error, results, fields) => {
               if(!error){
-                if(results.insertId){
-                  resolve({
-                    sectionId,
-                    ownerId
-                  })
-                }else{
-                  reject({
-                    reason: "Errore interno al server, riprova più tardi",
-                    debug: "[MYSQL] Couldn't retrieve the id: " + results.insertId
-                  })
-                }
+                resolve({
+                  sectionId,
+                  ownerId
+                })
               }else{
                 //error executing query
                 reject({
                   reason: "Errore interno al server, riprova più tardi",
-                  debug: "[MYSQL] Error executing updateGame" + error
+                  debug: "[MYSQL] Error executing addSection " + error
                 });
               }
             })
@@ -473,7 +465,7 @@ async function _addSection(title, ownerId){
         //error executing query
         reject({
           reason: "Errore interno al server, riprova più tardi",
-          debug: "[MYSQL] Error executing updateGame" + error
+          debug: "[MYSQL] Error executing addSection " + error
         });
       }
     })
@@ -483,9 +475,8 @@ async function _addSection(title, ownerId){
 async function _modifySection(sectionId, title){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
-    //connection.connect();
     connection.query(
-    `UPDATE sections SET title=? WHERE id=`,
+    `UPDATE sections SET title=? WHERE id=?`,
     [title, sectionId],
     (error, results, fields) => {
       if(!error){
@@ -494,7 +485,7 @@ async function _modifySection(sectionId, title){
         //error executing query
         reject({
           reason: "Errore interno al server, riprova più tardi",
-          debug: "[MYSQL] Error executing updateGame" + error
+          debug: "[MYSQL] Error executing modifySection " + error
         });
       }
     })
@@ -504,9 +495,8 @@ async function _modifySection(sectionId, title){
 async function _deleteSection(sectionId){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
-    //connection.connect();
     connection.query(
-    `DELETE FROM section WHERE id=?`,
+    `DELETE FROM sections WHERE id=?`,
     [sectionId],
     (error, results, fields) => {
       if(!error){
@@ -519,7 +509,85 @@ async function _deleteSection(sectionId){
         //error executing query
         reject({
           reason: "Errore interno al server, riprova più tardi",
-          debug: "[MYSQL] Error executing updateGame" + error
+          debug: "[MYSQL] Error executing deleteSection " + error
+        });
+      }
+    })
+  })
+}
+
+async function _getSection(userID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `SELECT id, title FROM sections, permissions 
+    WHERE id=section_id AND user_id=?`,
+    [userID],
+    (error, results, fields) => {
+      if(!error){
+        let sections = new Array();
+        for(let result of results){
+          sections.push({
+            title: result.title,
+            id: result.id
+          });
+        }
+        resolve(sections);
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing getSection " + error
+        });
+      }
+    })
+  })
+}
+
+async function _isSectionOwner(userID, sectionID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    //connection.connect();
+    connection.query(
+    `SELECT * FROM permissions WHERE is_owner=TRUE AND section_id=? AND user_id=?`,
+    [sectionID, userID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.length == 0){
+          resolve(false);
+        }else{
+          resolve(true);
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing isSectionOwner " + error
+        });
+      }
+    })
+  })
+}
+
+async function _sectionExist(sectionID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    //connection.connect();
+    connection.query(
+    `SELECT * FROM sections WHERE id=?`,
+    [sectionID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.length == 0){
+          resolve(false);
+        }else{
+          resolve(true);
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing sectionExist " + error
         });
       }
     })
@@ -547,6 +615,9 @@ const SQL = {
   addSection: _addSection,
   modifySection: _modifySection,
   deleteSection: _deleteSection,
+  getSection: _getSection,
+  isSectionOwner: _isSectionOwner,
+  sectionExist: _sectionExist,
 };
 
 module.exports = SQL;
