@@ -27,10 +27,12 @@ let IMAGES_UPLOADED = `${BASE_PATH}/imagesUploaded/`;
 let BASE_PATH_GAMES = `${BASE_PATH}/games`;
 let SEARCHBGG_GAME_PATH = `${BASE_PATH}/searchBgg`;
 let FETCHBGG_GAME_PATH = `${BASE_PATH}/fetchBgg`;
+let GAME_PERMISSION_PATH = `${BASE_PATH_GAMES}/permission`
 
 let BASE_PATH_SECTIONS = `${BASE_PATH}/sections`;
 let HOLDER_PATH = `${BASE_PATH_SECTIONS}/holder`;
 let SECTION_GAMES_PATH = `${BASE_PATH_SECTIONS}/game`;
+let SECTION_PERMISSION_PATH = `${BASE_PATH_SECTIONS}/permission`
 
 const BGG_BASE_PATH = `http://boardgamegeek.com/xmlapi`;
 const BGG_SEARCH_PATH = `${BGG_BASE_PATH}/search`;
@@ -56,10 +58,12 @@ const constant = {
   BASE_PATH_GAMES,
   SEARCHBGG_GAME_PATH,
   FETCHBGG_GAME_PATH,
+  GAME_PERMISSION_PATH,
 
   BASE_PATH_SECTIONS,
   HOLDER_PATH,
   SECTION_GAMES_PATH,
+  SECTION_PERMISSION_PATH,
 
   bgg: {
     BGG_BASE_PATH,

@@ -4,6 +4,8 @@ const secrets = require("./_secrets");
 let {GameQuery, Game} = require("../models/Game");
 let Holder = require("./../models/Holders");
 let {SectionGamesQuery} = require("./../models/SectionGame");
+let {SectionPermissionsQuery} = require("./../models/SectionPermissions");
+let {GamePermissionsQuery} = require("./../models/GamePermissions");
 
 var pool  = mysql.createPool({
   connectionLimit : 10,
@@ -927,6 +929,9 @@ async function updateSectionGame(sectionID, gameID, game){
   })
 }
 
+//
+//                      SECTION GAMES PERMISSIONS
+//
 async function canAddSectionGame(userID, sectionID){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
@@ -1011,6 +1016,103 @@ async function canUpdateSectionGame(userID, sectionID){
   })
 }
 
+//
+//                      PERMISSIONS
+//
+async function getSectionPermission(userID, sectionID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `SELECT can_add_game, can_delete_game, can_update_game, can_add_people, can_modify_permissions, is_owner
+    FROM permissions
+    WHERE user_id = ?
+    AND section_id = ?`,
+    [userID, sectionID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.length != 0){
+          let sectionPermission = new SectionPermissionsQuery(results[0]);
+          resolve(sectionPermission);
+        }else{
+          //length is 0
+          reject({
+            reason: "Errore interno al server, riprova più tardi",
+            debug: `[MYSQL] Didn't find anything from this query`
+          });
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error executing canUpdateSectionGame: ${error}`
+        });
+      }
+    })
+  })
+}
+
+async function getGamePermission(gameID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `SELECT users.firstname, users.lastname, owner_id, game_id, can_update_game
+    FROM gamePermissions, users
+    WHERE game_id = ?
+    AND gamePermissions.owner_id = users.id`,
+    [gameID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.length != 0){
+          let gamePermissions = new GamePermissionsQuery(results[0]);
+          resolve(gamePermissions);
+        }else{
+          //length is 0
+          reject({
+            reason: "Non sono state trovati i permessi relativi al gioco selezionato",
+            debug: `[MYSQL] Didn't find anything from this query`
+          });
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error executing canUpdateSectionGame: ${error}`
+        });
+      }
+    })
+  })
+}
+
+async function setGamePermission(permissions){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `UPDATE gamePermissions SET
+    can_update_game=?,
+    owner_id = ?
+    WHERE
+    game_id = ?`,
+    [permissions.canUpdateGame, permissions.ownerID, permissions.gameID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.affectedRows == 0){
+          reject({
+            reason: "Impossibile aggiornare il gioco",
+            debug: `[MYSQL] Error: 0 affected rows for owner: ${ownerID}, game: ${gameID}`
+          })
+        }else{
+          resolve(true);
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error executing canUpdateSectionGame: ${error}`
+        });
+      }
+    })
+  })
+}
 
 const SQL = {
   login: _login,
@@ -1054,6 +1156,10 @@ const SQL = {
   canAddSectionGame,
   canDeleteSectionGame,
   canUpdateSectionGame,
+
+  getSectionPermission,
+  getGamePermission,
+  setGamePermission,
 };
 
 module.exports = SQL;
