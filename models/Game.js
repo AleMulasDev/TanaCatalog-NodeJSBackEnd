@@ -14,6 +14,8 @@ class GameQuery{
     this.image = query_results["image"] || undefined
     this.thumbnail = query_results["thumbnail"] || undefined
     this.price = query_results["price"] || undefined
+    this.firstname = query_results["firstname"]
+    this.lastname = query_results["lastname"]
   }
 
   getObj(){
@@ -34,7 +36,7 @@ class GameQuery{
 }
 
 class Game{
-  constructor({id, title, description, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price}){
+  constructor({id, title, description, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price, firstname, lastname}){
     this.id = id ? id : undefined;
     this.title = title;
     this.description = description
@@ -46,6 +48,7 @@ class Game{
     this.image = image;
     this.thumbnail = thumbnail;
     this.price = price;
+    this.owner = firstname && lastname ? `${firstname} ${lastname}` : undefined;
   }
 
   hasId(){

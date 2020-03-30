@@ -27,6 +27,7 @@ var sectionsRouter = require("./routes/section");
 var holderRouter = require("./routes/section/holder");
 var sectionGameRouter = require("./routes/section/game");
 var sectionPermissionRouter = require("./routes/Section/permission");
+var sectionUserRouter = require("./routes/Section/user");
 
 const constant = require("./utils/constant");
 
@@ -76,6 +77,7 @@ app.use(constant.BASE_PATH_SECTIONS, sectionsRouter);
 app.use(constant.HOLDER_PATH, holderRouter);
 app.use(constant.SECTION_GAMES_PATH, sectionGameRouter);
 app.use(constant.SECTION_PERMISSION_PATH, sectionPermissionRouter);
+app.use(constant.SECTION_USER_PATH, sectionUserRouter);
 
 app.use(constant.IMAGES_UPLOADED, imageRouter);
 
@@ -94,6 +96,7 @@ console.log("Listening on: " + constant.HOLDER_PATH);
 console.log("Listening on: " + constant.SECTION_GAMES_PATH);
 console.log("Listening on: " + constant.SECTION_PERMISSION_PATH);
 console.log("Listening on: " + constant.GAME_PERMISSION_PATH);
+console.log("Listening on: " + constant.SECTION_USER_PATH);
 
 console.log("Listening on: " + constant.IMAGES_UPLOADED);
 

@@ -5,11 +5,16 @@ var {Game} = require("../models/Game");
 var SQL = utils.SQL;
 const pathModule = require('path');
 const sharp = require('sharp');
+var {GamePermissions} = require('./../models/GamePermissions');
 
 //send list of games
 router.get('/', async function(req, res, next) {
   try{
-    let games = await SQL.gameList();
+    let gamesQuery = await SQL.gameList();
+    let games = new Array();
+    for(let game of gamesQuery){
+      games.push(new Game(game));
+    }
     res.json({
       status: "ok",
       games: games
@@ -30,22 +35,7 @@ router.put('/', async function(req, res, next) {
   );
   if(!requestError){
     let user = await utils.retrieveUser(req.body.token);
-    let game = new Game(req.body);
-
-    try{
-      let isWhitelist = await SQL.userIsWhitelist(user.id)
-      if(!isWhitelist){
-        res.json({
-          error: 'Non disponi dei permessi necessari'
-        })
-        return;
-      }
-    }catch(err){
-      utils.logDebug('gamePUT endpoint', 'Checking whitelist ' + (err.debug || err));
-      res.json({error: err.reason ? err.reason : "Errore interno al server"})
-      return;
-    }
-    
+    let game = new Game(req.body);    
 
     try{
       let checkGame;
@@ -53,6 +43,22 @@ router.put('/', async function(req, res, next) {
         checkGame = await SQL.getGame(req.body.id)
       }
       if(checkGame){
+
+        try{
+          let permissionOBJ = await SQL.getGamePermission(req.body.id);
+          let permission = new GamePermissions(permissionOBJ);
+          if(permission.ownerID != user.id || !permission.canUpdateGame){
+            res.json({
+              error: 'Non disponi dei permessi necessari'
+            })
+            return;
+          }
+        }catch(err){
+          utils.logDebug('gamePUT endpoint', 'Checking permissions ' + (err.debug || err));
+          res.json({error: err.reason ? err.reason : "Errore interno al server"})
+          return;
+        }
+
         // update existing game
         await SQL.updateGame(req.body.id, game);
         res.json({

@@ -73,6 +73,7 @@ router.put('/', async function(req, res, next) {
             res.json({
               status: 'ok'
             })
+            utils.logInteraction('GamePermissionPUT', `${user.email} modified game (ID: ${permission.gameID}) permission`);
           }else{
             res.json({
               error: 'Si è verificato un errore con l\'aggiornamento dei permessi'

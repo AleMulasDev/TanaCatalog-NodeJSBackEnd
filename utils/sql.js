@@ -6,6 +6,7 @@ let Holder = require("./../models/Holders");
 let {SectionGamesQuery} = require("./../models/SectionGame");
 let {SectionPermissionsQuery} = require("./../models/SectionPermissions");
 let {GamePermissionsQuery} = require("./../models/GamePermissions");
+let {SectionUserQuery} = require("./../models/SectionUser");
 
 var pool  = mysql.createPool({
   connectionLimit : 10,
@@ -271,7 +272,10 @@ async function _gameList(){
     let connection = _initConnection();
 
     connection.query(
-    `SELECT id, title, description, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price FROM games`,
+    `SELECT games.id, title, description, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price, firstname, lastname
+    FROM games, users, gamePermissions
+    WHERE games.id = game_id
+    AND users.id = owner_id`,
     (error, results, fields) => {
       if(!error){
         let games = new Array();
@@ -601,7 +605,6 @@ async function _sectionExist(sectionID){
 async function canAccessSection(sectionID, userID){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
-
     connection.query(
     `SELECT user_id FROM permissions WHERE user_id=? AND section_id=?`,
     [userID, sectionID],
@@ -617,6 +620,210 @@ async function canAccessSection(sectionID, userID){
         reject({
           reason: "Errore interno al server, riprova più tardi",
           debug: "[MYSQL] Error executing canAccessSection " + error
+        });
+      }
+    })
+  })
+}
+
+async function canModifySectionPermission(sectionID, userID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `SELECT user_id FROM permissions WHERE user_id=? AND section_id=? AND can_modify_permissions = TRUE`,
+    [userID, sectionID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.length == 0){
+          resolve(false);
+        }else{
+          resolve(true);
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing canModifySectionPermission " + error
+        });
+      }
+    })
+  })
+}
+
+async function canAddPeopleAndModify(sectionID, userID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `SELECT user_id FROM permissions WHERE user_id=? AND section_id=? AND can_add_people = TRUE and can_modify_permissions = TRUE`,
+    [userID, sectionID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.length == 0){
+          resolve(false);
+        }else{
+          resolve(true);
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing canAddPeopleAndModify " + error
+        });
+      }
+    })
+  })
+}
+
+async function canAddPeople(sectionID, userID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `SELECT user_id FROM permissions WHERE user_id=? AND section_id=? AND can_add_people = TRUE`,
+    [userID, sectionID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.length == 0){
+          resolve(false);
+        }else{
+          resolve(true);
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing canAddPeople " + error
+        });
+      }
+    })
+  })
+}
+
+async function addUserInSection(userID, sectionID, permission){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    let {can_add_game, can_delete_game, 
+      can_update_game, can_add_people, can_modify_permissions} = permission;
+    connection.query(
+    `INSERT INTO permissions
+    (user_id, section_id, can_add_game, can_delete_game, can_update_game, can_add_people, can_modify_permissions, is_owner)
+    VALUES
+    (?,?,?,?,?,?,?, false)`,
+    [userID, sectionID, can_add_game, can_delete_game, 
+      can_update_game, can_add_people, can_modify_permissions],
+    (error, results, fields) => {
+      if(!error){
+        resolve(true);
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing addUserInSection " + error
+        });
+      }
+    })
+  })
+}
+
+async function removeUserInSection(userID, sectionID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `DELETE FROM permissions
+    WHERE user_id=? AND section_id=?`,
+    [userID, sectionID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.affectedRows == 1){
+          resolve(true);
+        }else{
+          resolve(false);
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing removeUserInSection " + error
+        });
+      }
+    })
+  })
+}
+
+async function updateUserPermission(userID, sectionID, permission){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    let {can_add_game, can_delete_game, 
+      can_update_game, can_add_people, can_modify_permissions} = permission;
+    connection.query(
+    `UPDATE permissions SET
+    can_add_game=?, can_delete_game=?, can_update_game=?, can_add_people=?, can_modify_permissions=?
+    WHERE user_id = ? AND section_id = ?`,
+    [can_add_game, can_delete_game,
+      can_update_game, can_add_people, can_modify_permissions, userID, sectionID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.affectedRows == 1){
+          resolve(true);
+        }else{
+          resolve(false);
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing updateUserPermission " + error
+        });
+      }
+    })
+  })
+}
+
+async function addUserInSectionWithoutPermission(userID, sectionID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `INSERT INTO permissions
+    (user_id, section_id, can_add_game, can_delete_game, can_update_game, can_add_people, can_modify_permissions, is_owner)
+    VALUES
+    (?,?, false, false, false, false, false, false)`,
+    [userID, sectionID],
+    (error, results, fields) => {
+      if(!error){
+        resolve(true);
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing addUserInSectionWithoutPermission " + error
+        });
+      }
+    })
+  })
+}
+
+async function sectionUserList(sectionID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `SELECT 
+    users.id, firstname, lastname, email, can_add_game, can_delete_game, 
+    can_update_game, can_add_people, can_modify_permissions, is_owner
+    FROM permissions, users 
+    WHERE section_id=?
+    AND users.id = user_id`,
+    [sectionID],
+    (error, results, fields) => {
+      if(!error){
+        let users = new Array();
+        for(let result of results){
+          users.push(new SectionUserQuery(result));
+        }
+        resolve(users);
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing sectionUserList " + error
         });
       }
     })
@@ -1138,7 +1345,15 @@ const SQL = {
   getSection: _getSection,
   isSectionOwner: _isSectionOwner,
   sectionExist: _sectionExist,
+  canModifySectionPermission,
+  canAddPeopleAndModify,
+  canAddPeople,
   canAccessSection,
+  addUserInSection,
+  removeUserInSection,
+  updateUserPermission,
+  addUserInSectionWithoutPermission,
+  sectionUserList,
 
   getHolders,
   addHolder,
