@@ -12,6 +12,7 @@ let SERVER_ADDRESS = `localhost:4000`;
 let BASE_PATH= process.env.BASE_PATH ? process.env.BASE_PATH : "/api/tana";
 let BASE_PATH_USERS= `${BASE_PATH}/users`;
 let LOGIN_PATH= `${BASE_PATH_USERS}/login`;
+let TOKEN_CHECK_PATH = `${BASE_PATH_USERS}/checkToken`
 let REGISTER_PATH= `${BASE_PATH_USERS}/register`;
 let RECOVER_PATH= `${BASE_PATH_USERS}/recover`;
 let VERIFY_PATH= `${BASE_PATH_USERS}/verify`;
@@ -40,6 +41,7 @@ const constant = {
   BASE_PATH,
   BASE_PATH_USERS,
   LOGIN_PATH,
+  TOKEN_CHECK_PATH,
   REGISTER_PATH,
   RECOVER_PATH,
   VERIFY_PATH,

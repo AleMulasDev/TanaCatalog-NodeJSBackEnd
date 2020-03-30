@@ -8,6 +8,7 @@ var fileUpload = require("express-fileupload");
 
 
 var loginRouter = require("./routes/Users/login");
+var checkTokenRouter = require("./routes/Users//checkToken");
 var registerRouter = require("./routes/Users/register");
 var verifyRouter = require("./routes/Users/verify");
 var recoverRouter = require("./routes/Users/recover");
@@ -59,6 +60,7 @@ var corsOptions = {
 app.use(cors(corsOptions));
 
 app.use(constant.LOGIN_PATH, loginRouter);
+app.use(constant.TOKEN_CHECK_PATH, checkTokenRouter);
 app.use(constant.REGISTER_PATH, registerRouter);
 app.use(constant.VERIFY_PATH, verifyRouter);
 app.use(constant.RECOVER_PATH, recoverRouter);
@@ -74,6 +76,7 @@ app.use(constant.SECTION_GAMES_PATH, sectionGameRouter);
 app.use(constant.IMAGES_UPLOADED, imageRouter);
 
 console.log("Listening on: " + constant.LOGIN_PATH);
+console.log("Listening on: " + constant.TOKEN_CHECK_PATH);
 console.log("Listening on: " + constant.REGISTER_PATH);
 console.log("Listening on: " + constant.VERIFY_PATH);
 console.log("Listening on: " + constant.RECOVER_PATH);

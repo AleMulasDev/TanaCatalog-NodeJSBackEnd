@@ -117,11 +117,13 @@ async function retrieveUser(token){
           if(!err){
             if(decoded.id && decoded.expiration && decoded.email){
               let exp = moment(decoded.expiration);
+              let exp2 = exp.subtract(30, 'm');
               let now = moment();
-              if(now.isBefore(exp)){
+              if(now.isBefore(exp2)){
                 resolve({
                   email: decoded.email,
-                  id: decoded.id
+                  id: decoded.id,
+                  expirationDate: decoded.expiration
                 });
               }else{
                 //expired token
