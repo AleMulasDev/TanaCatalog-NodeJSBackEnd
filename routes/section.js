@@ -2,7 +2,6 @@ var express = require(`express`);
 var router = express.Router();
 var utils = require("../utils/utils.js");
 var SQL = utils.SQL;
-const path = require(`path`);
 
 // get section list for a given user or a single one if specified by the id
 router.get(`/`, async function(req, res, next) {
@@ -149,12 +148,12 @@ router.delete(`/`, async function(req, res, next) {
     }
 
     try{
-      let isOwner = SQL.isSectionOwner(user.id, req.query.id);
+      let isOwner = await SQL.isSectionOwner(user.id, req.query.id);
       if(!isOwner){
         res.json({
           error: `Non sei un utente autorizzato ad effettuare questa operazione`
         })
-        utils.logDebug(`sectionDELETE`, `Owner-check operations: user ${user.email} is not the owner of section ${req.query.sectionID}`);
+        utils.logDebug(`sectionDELETE`, `Owner-check operations: user ${user.email} is not the owner of section ${req.query.id}`);
         return;
       }
     }catch(err){

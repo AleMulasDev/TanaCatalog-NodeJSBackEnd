@@ -2,6 +2,8 @@ var mysql = require("mysql");
 const constant = require("./constant");
 const secrets = require("./_secrets");
 let {GameQuery, Game} = require("../models/Game");
+let Holder = require("./../models/Holders");
+let {SectionGamesQuery} = require("./../models/SectionGame");
 
 var pool  = mysql.createPool({
   connectionLimit : 10,
@@ -28,7 +30,7 @@ function _initConnection() {
 async function _login(email) {
   let connection = _initConnection();
   return new Promise((resolve, reject) => {
-    //connection.connect();
+
     connection.query(
       `SELECT id,email, password, firstname, lastname FROM users WHERE email=? and verified=true`,
       [email],
@@ -103,7 +105,7 @@ async function _register(email, password, firstname, lastname){
 async function _mailExist(email){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
-    //connection.connect();
+
     connection.query(
     `SELECT id FROM users WHERE email=?`,
     [email],
@@ -128,7 +130,7 @@ async function _mailExist(email){
 async function _getUserId(email){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
-    //connection.connect();
+
     connection.query(
     `SELECT id FROM users WHERE email=?`,
     [email],
@@ -237,7 +239,7 @@ function _updatePassword(id, password){
 async function _userIsWhitelist(id){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
-    //connection.connect();
+
     connection.query(
     `SELECT id FROM users WHERE is_whitelist=TRUE`,
     (error, results, fields) => {
@@ -265,7 +267,7 @@ async function _userIsWhitelist(id){
 async function _gameList(){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
-    //connection.connect();
+
     connection.query(
     `SELECT id, title, description, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price FROM games`,
     (error, results, fields) => {
@@ -289,7 +291,7 @@ async function _gameList(){
 async function _addGame(game){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
-    //connection.connect();
+
     connection.query(
     `INSERT INTO games (title, description, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price) VALUES (?,?,?,?,?,?,?,?,?,?)`,
     [game.title, game.description, game.link_tdg, game.players, game.playtime, game.age, game.gamebgg_id, game.image, game.thumbnail, game.price],
@@ -317,7 +319,7 @@ async function _addGame(game){
 async function _gameIsUsed(id){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
-    //connection.connect();
+
     connection.query(
     `SELECT game_id FROM sectionGames WHERE game_id=?`,
     [id],
@@ -342,7 +344,7 @@ async function _gameIsUsed(id){
 async function _getGame(id){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
-    //connection.connect();
+
     connection.query(
     `SELECT * FROM games WHERE id=?`,
     [id],
@@ -368,7 +370,7 @@ async function _getGame(id){
 async function _deleteGame(id){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
-    //connection.connect();
+
     connection.query(
     `DELETE FROM games WHERE id=?`,
     [id],
@@ -396,7 +398,7 @@ async function _deleteGame(id){
 async function _updateGame(id, game){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
-    //connection.connect();
+
     connection.query(
     `UPDATE games SET title=?, description=?, link_tdg=?, players=?, playtime=?, age=?, gamebgg_id=?, image=?, thumbnail=?, price=? WHERE id=?`,
     [game.title, game.description, game.link_tdg, game.players, game.playtime, game.age, game.gamebgg_id, game.image, game.thumbnail, game.price, id],
@@ -547,7 +549,7 @@ async function _getSection(userID){
 async function _isSectionOwner(userID, sectionID){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
-    //connection.connect();
+
     connection.query(
     `SELECT * FROM permissions WHERE is_owner=TRUE AND section_id=? AND user_id=?`,
     [sectionID, userID],
@@ -572,7 +574,7 @@ async function _isSectionOwner(userID, sectionID){
 async function _sectionExist(sectionID){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
-    //connection.connect();
+
     connection.query(
     `SELECT * FROM sections WHERE id=?`,
     [sectionID],
@@ -593,6 +595,422 @@ async function _sectionExist(sectionID){
     })
   })
 }
+
+async function canAccessSection(sectionID, userID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+
+    connection.query(
+    `SELECT user_id FROM permissions WHERE user_id=? AND section_id=?`,
+    [userID, sectionID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.length == 0){
+          resolve(false);
+        }else{
+          resolve(true);
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing canAccessSection " + error
+        });
+      }
+    })
+  })
+}
+
+//---------------------------------------------------------
+//                          HOLDERS
+//---------------------------------------------------------
+async function getHolders(sectionID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `SELECT id, section_id, title, address, cap, city FROM holders WHERE section_id=?`,
+    [sectionID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.length != 0){
+          try{
+            let holders = new Array();
+            for(let holder of results){
+              holders.push(new Holder(holder));
+            }
+            resolve(holders);
+          }catch(err){
+            reject({
+              reason: "Errore interno al server, riprova più tardi",
+              debug: `[MYSQL] getHolders - catch error: ${err}`
+            });
+          }
+        }else{
+          //length is 0
+          resolve();
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error executing getHolders: ${error}`
+        });
+      }
+    })
+  })
+}
+
+async function addHolder(holder){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    let {section_id, title, address, cap, city} = holder;
+    connection.query(
+    `INSERT INTO holders (section_id, title, address, cap, city) VALUES (?,?,?,?,?)`,
+    [section_id, title, address, cap, city],
+    (error, results, fields) => {
+      if(!error){
+        if(results.insertId != 0){
+          resolve(results.insertId);
+        }else{
+          //didn't inserted it
+          reject({
+            reason: "Errore interno al server, riprova più tardi",
+            debug: `[MYSQL] addHolder - insertid is 0: ${results.insertId}`
+          });
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error executing addHolder: ${error}`
+        });
+      }
+    })
+  })
+}
+async function removeHolder(holderID, sectionID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `DELETE FROM holders WHERE id=? AND section_id=?`,
+    [holderID, sectionID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.affectedRows != 0){
+          resolve(true);
+        }else{
+          reject({
+            reason: "Errore interno al server, riprova più tardi",
+            debug: `[MYSQL] removeHolder - alredy deleted or not exist`
+          });
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error executing removeHolder: ${error}`
+        });
+      }
+    })
+  })
+}
+async function editHolder(holder){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    let {section_id, title, address, cap, city} = holder;
+    connection.query(
+    `UPDATE holders SET title=?, address=?, cap=?, city=?`,
+    [title, address, cap, city],
+    (error, results, fields) => {
+      if(!error){
+        resolve(true);
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error executing editHolder: ${error}`
+        });
+      }
+    })
+  })
+}
+async function existHolder(holderID, sectionID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `SELECT id FROM holders WHERE id=? AND section_id=?`,
+    [holderID, sectionID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.length == 0){
+          resolve(false);
+        }else{
+          resolve(true);
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error executing existHolder: ${error}`
+        });
+      }
+    })
+  })
+}
+
+async function canAddHolder(userID, sectionID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `SELECT u.id 
+    FROM users as u, permissions as p
+    WHERE u.id = p.user_id
+    AND u.id=? AND p.section_id=?
+    AND p.can_update_game=TRUE`,
+    [userID, sectionID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.length == 0){
+          resolve(false);
+        }else{
+          resolve(true);
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error executing canAddHolder: ${error}`
+        });
+      }
+    })
+  })
+}
+
+//
+//                      SECTION GAMES
+//
+async function sectionGameList(sectionID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `SELECT s.id, s.game_id, s.section_id, s.is_new, s.acquisition_date, s.origin, s.propriety, s.holder_id,
+    h.title as holder_title, g.title as game_title
+    FROM sectionGames as s, holders as h, games as g
+    WHERE s.game_id = g.id
+    AND s.holder_id = h.id
+    AND s.section_id = ?`,
+    [sectionID],
+    (error, results, fields) => {
+      if(!error){
+        let games = new Array();
+        for(result of results){
+          games.push(new SectionGamesQuery(result));
+        }
+        resolve(games);
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing sectionGameList query " + error
+        });
+      }
+    });//end of query
+  });//end of promise
+}
+
+async function addSectionGame(game){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    let {game_id, section_id, is_new, acquisition_date, origin, propriety, holder_id} = game
+    connection.query(
+    `INSERT INTO sectionGames (game_id, section_id, is_new, acquisition_date, origin, propriety, holder_id) VALUES (?,?,?,?,?,?,?)`,
+    [game_id, section_id, is_new, acquisition_date, origin, propriety, holder_id],
+    (error, results, fields) => {
+      if(!error){
+        resolve(results.insertId);
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing addSectionGame " + error
+        });
+      }
+    });//end of query
+  });//end of promise
+}
+
+
+async function getSectionGame(sectionID, gameID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `SELECT s.id, s.game_id, s.section_id, s.is_new, s.acquisition_date, s.origin, s.propriety, s.holder_id,
+    h.title as holder_title, g.title as game_title
+    FROM sectionGames as s, holders as h, games as g
+    WHERE s.game_id = g.id
+    AND s.holder_id = h.id
+    AND s.section_id = ?
+    AND s.id=?`,
+    [sectionID, gameID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.length == 1){
+          let game = new SectionGamesQuery(results);
+          resolve(game)
+        }else{
+          resolve(undefined);
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing getSectionGame " + error
+        });
+      }
+    })
+  })
+}
+
+async function deleteSectionGame(sectionID, gameID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `DELETE FROM sectionGames WHERE id=? AND section_id=?`,
+    [gameID, sectionID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.affectedRows === 1){
+          resolve(true);
+        }else{
+          resolve(false);
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing deleteSectionGame " + error
+        });
+      }
+    })
+  })
+}
+
+async function updateSectionGame(sectionID, gameID, game){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    let {is_new, acquisition_date, origin, propriety, holder_id} = game
+    connection.query(
+    `UPDATE sectionGames SET 
+    is_new = ?,
+    acquisition_date = ?,
+    origin = ?,
+    propriety = ?,
+    holder_id = ?
+    WHERE id=?
+    AND section_id = ?`,
+    [is_new, acquisition_date, origin, propriety, holder_id, gameID, sectionID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.affectedRows === 1){
+          resolve(true);
+        }else{
+          resolve(false);
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing updateSectionGame " + error
+        });
+      }
+    })
+  })
+}
+
+async function canAddSectionGame(userID, sectionID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `SELECT u.id 
+    FROM users as u, permissions as p
+    WHERE u.id = p.user_id
+    AND u.id=? AND p.section_id=?
+    AND p.can_add_game=TRUE`,
+    [userID, sectionID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.length == 0){
+          resolve(false);
+        }else{
+          resolve(true);
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error executing canAddSectionGame: ${error}`
+        });
+      }
+    })
+  })
+}
+
+async function canDeleteSectionGame(userID, sectionID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `SELECT u.id 
+    FROM users as u, permissions as p
+    WHERE u.id = p.user_id
+    AND u.id=? AND p.section_id=?
+    AND p.can_delete_game=TRUE`,
+    [userID, sectionID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.length == 0){
+          resolve(false);
+        }else{
+          resolve(true);
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error executing canDeleteSectionGame: ${error}`
+        });
+      }
+    })
+  })
+}
+
+async function canUpdateSectionGame(userID, sectionID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `SELECT u.id 
+    FROM users as u, permissions as p
+    WHERE u.id = p.user_id
+    AND u.id=? AND p.section_id=?
+    AND p.can_update_game=TRUE`,
+    [userID, sectionID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.length == 0){
+          resolve(false);
+        }else{
+          resolve(true);
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error executing canUpdateSectionGame: ${error}`
+        });
+      }
+    })
+  })
+}
+
 
 const SQL = {
   login: _login,
@@ -618,6 +1036,24 @@ const SQL = {
   getSection: _getSection,
   isSectionOwner: _isSectionOwner,
   sectionExist: _sectionExist,
+  canAccessSection,
+
+  getHolders,
+  addHolder,
+  removeHolder,
+  editHolder,
+  existHolder,
+  canAddHolder,
+
+  sectionGameList,
+  addSectionGame,
+  getSectionGame,
+  deleteSectionGame,
+  updateSectionGame,
+
+  canAddSectionGame,
+  canDeleteSectionGame,
+  canUpdateSectionGame,
 };
 
 module.exports = SQL;

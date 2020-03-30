@@ -28,6 +28,8 @@ let SEARCHBGG_GAME_PATH = `${BASE_PATH}/searchBgg`;
 let FETCHBGG_GAME_PATH = `${BASE_PATH}/fetchBgg`;
 
 let BASE_PATH_SECTIONS = `${BASE_PATH}/sections`;
+let HOLDER_PATH = `${BASE_PATH_SECTIONS}/holder`;
+let SECTION_GAMES_PATH = `${BASE_PATH_SECTIONS}/game`;
 
 const BGG_BASE_PATH = `http://boardgamegeek.com/xmlapi`;
 const BGG_SEARCH_PATH = `${BGG_BASE_PATH}/search`;
@@ -54,6 +56,8 @@ const constant = {
   FETCHBGG_GAME_PATH,
 
   BASE_PATH_SECTIONS,
+  HOLDER_PATH,
+  SECTION_GAMES_PATH,
 
   bgg: {
     BGG_BASE_PATH,
