@@ -806,7 +806,7 @@ async function sectionUserList(sectionID){
     let connection = _initConnection();
     connection.query(
     `SELECT 
-    users.id, firstname, lastname, email, can_add_game, can_delete_game, 
+    users.id as user_id, firstname, lastname, email, can_add_game, can_delete_game, 
     can_update_game, can_add_people, can_modify_permissions, is_owner
     FROM permissions, users 
     WHERE section_id=?
