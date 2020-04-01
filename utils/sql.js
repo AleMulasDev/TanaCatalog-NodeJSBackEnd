@@ -272,10 +272,50 @@ async function _gameList(){
     let connection = _initConnection();
 
     connection.query(
-    `SELECT games.id, title, description, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price, firstname, lastname
+    `SELECT games.id, owner_id, title, description, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price, firstname, lastname, can_update_game
     FROM games, users, gamePermissions
     WHERE games.id = game_id
     AND users.id = owner_id`,
+    (error, results, fields) => {
+      if(!error){
+        let games = new Array();
+        for(result of results){
+          games.push(new GameQuery(result));
+        }
+        resolve(games);
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: "[MYSQL] Error executing gamelist query " + error
+        });
+      }
+    });//end of query
+  });//end of promise
+}
+
+async function gameListWithPermission(userID){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `SELECT games.id, owner_id, title, description, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price, firstname, lastname, can_update_game,
+    COALESCE((
+      SELECT 'true'
+      FROM gamePermissions
+      WHERE (owner_id = ?
+      OR can_update_game = TRUE)
+      AND game_id = games.id
+    ), 'false') as canEdit,
+    COALESCE((
+      SELECT 'true'
+      FROM gamePermissions
+      WHERE owner_id = ?
+      AND game_id = games.id
+    ), 'false') as isOwner
+    FROM games, users, gamePermissions
+    WHERE games.id = game_id
+    AND users.id = owner_id;`,
+    [userID, userID],
     (error, results, fields) => {
       if(!error){
         let games = new Array();
@@ -352,7 +392,11 @@ async function _getGame(id){
     let connection = _initConnection();
 
     connection.query(
-    `SELECT * FROM games WHERE id=?`,
+    `SELECT games.id, owner_id, title, description, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price, firstname, lastname, can_update_game
+    FROM games, users, gamePermissions
+    WHERE games.id = game_id
+    AND users.id = owner_id
+    AND games.id = ?`,
     [id],
     (error, results, fields) => {
       if(!error){
@@ -528,7 +572,7 @@ async function _getSection(userID){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
     connection.query(
-    `SELECT id, title FROM sections, permissions 
+    `SELECT id, title, is_owner FROM sections, permissions
     WHERE id=section_id AND user_id=?`,
     [userID],
     (error, results, fields) => {
@@ -537,7 +581,8 @@ async function _getSection(userID){
         for(let result of results){
           sections.push({
             title: result.title,
-            id: result.id
+            id: result.id,
+            isOwner: result.is_owner
           });
         }
         resolve(sections);
@@ -1305,7 +1350,7 @@ async function setGamePermission(permissions){
         if(results.affectedRows == 0){
           reject({
             reason: "Impossibile aggiornare il gioco",
-            debug: `[MYSQL] Error: 0 affected rows for owner: ${ownerID}, game: ${gameID}`
+            debug: `[MYSQL] Error: 0 affected rows for owner: ${permissions.ownerID}, game: ${permissions.gameID}`
           })
         }else{
           resolve(true);
@@ -1315,6 +1360,34 @@ async function setGamePermission(permissions){
         reject({
           reason: "Errore interno al server, riprova più tardi",
           debug: `[MYSQL] Error executing canUpdateSectionGame: ${error}`
+        });
+      }
+    })
+  })
+}
+
+async function addGamePermission(permissions){
+  return new Promise((resolve, reject) => {
+    let connection = _initConnection();
+    connection.query(
+    `INSERT INTO gamePermissions (can_update_game, owner_id, game_id) VALUES 
+    (?,?,?)`,
+    [permissions.canUpdateGame, permissions.ownerID, permissions.gameID],
+    (error, results, fields) => {
+      if(!error){
+        if(results.affectedRows == 0){
+          reject({
+            reason: "Impossibile inserire il gioco",
+            debug: `[MYSQL] Error: 0 affected rows for owner: ${permissions.ownerID}, game: ${permissions.gameID}`
+          })
+        }else{
+          resolve(true);
+        }
+      }else{
+        //error executing query
+        reject({
+          reason: "Errore interno al server, riprova più tardi",
+          debug: `[MYSQL] Error executing addGamePermission: ${error}`
         });
       }
     })
@@ -1334,6 +1407,7 @@ const SQL = {
 
   addGame: _addGame,
   gameList: _gameList,
+  gameListWithPermission,
   gameIsUsed: _gameIsUsed,
   getGame: _getGame,
   deleteGame: _deleteGame,
@@ -1375,6 +1449,7 @@ const SQL = {
   getSectionPermission,
   getGamePermission,
   setGamePermission,
+  addGamePermission,
 };
 
 module.exports = SQL;

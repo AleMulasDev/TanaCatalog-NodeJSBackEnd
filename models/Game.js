@@ -16,6 +16,10 @@ class GameQuery{
     this.price = query_results["price"] || undefined
     this.firstname = query_results["firstname"]
     this.lastname = query_results["lastname"]
+    this.can_update_game = query_results["can_update_game"]
+    this.owner_id = query_results["owner_id"]
+    this.canEdit = query_results["canEdit"] || undefined
+    this.isOwner = query_results["isOwner"] || undefined
   }
 
   getObj(){
@@ -36,8 +40,10 @@ class GameQuery{
 }
 
 class Game{
-  constructor({id, title, description, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price, firstname, lastname}){
+  constructor({id, owner_id, title, description, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price,
+    firstname, lastname, can_update_game, canEdit, isOwner}){
     this.id = id ? id : undefined;
+    this.ownerID = owner_id;
     this.title = title;
     this.description = description
     this.link_tdg = link_tdg;
@@ -49,41 +55,13 @@ class Game{
     this.thumbnail = thumbnail;
     this.price = price;
     this.owner = firstname && lastname ? `${firstname} ${lastname}` : undefined;
+    this.canUpdateGame = can_update_game;
+    this.canEdit = canEdit || undefined;
+    this.isOwner = isOwner || undefined;
   }
 
   hasId(){
     return this.id ? true : false;
-  }
-
-  getObj(){
-    if(id){
-      return { 
-        id: this.id,
-        title: this.title, 
-        description: this.description,
-        link_tdg: this.link_tdg, 
-        players: this.players, 
-        playtime: this.playtime, 
-        age: this.age, 
-        gamebgg_id: this.gamebgg_id,
-        image: this.image,
-        thumbnail: this.thumbnail,
-        price: this.price
-      };
-    }else{
-      return {
-        title: this.title, 
-        description: this.description,
-        link_tdg: this.link_tdg, 
-        players: this.players, 
-        playtime: this.playtime, 
-        age: this.age, 
-        gamebgg_id: this.gamebgg_id,
-        image: this.image,
-        thumbnail: this.thumbnail,
-        price: this.price
-      };
-    }
   }
 }
 

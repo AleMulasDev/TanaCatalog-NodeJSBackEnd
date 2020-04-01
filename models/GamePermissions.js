@@ -8,11 +8,19 @@ class GamePermissionsQuery{
 }
 
 class GamePermissions{
-  constructor({name, ownerID, gameID, canUpdateGame}){
-    this.name = name;
-    this.ownerID = ownerID;
-    this.gameID = gameID;
-    this.canUpdateGame = canUpdateGame;
+  constructor(obj){
+    if(obj){
+      var {name, ownerID, gameID, canUpdateGame} = obj;
+      this.name = name || undefined;
+      this.ownerID = ownerID || undefined;
+      this.gameID = gameID || undefined;
+      this.canUpdateGame = canUpdateGame || 1;
+    }else{
+      this.name = undefined;
+      this.ownerID = undefined;
+      this.gameID = undefined;
+      this.canUpdateGame = 1;
+    }
   }
 }
 
