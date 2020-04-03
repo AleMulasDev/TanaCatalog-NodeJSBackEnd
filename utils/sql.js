@@ -139,7 +139,14 @@ async function _getUserId(email){
     [email],
     (error, results, fields) => {
       if(!error){
-        resolve(results[0]['id']);
+        try{
+          resolve(results[0]['id']);
+        }catch(err){
+          reject({
+            reason: "L'utente richiesto non esiste",
+            debug: `[MYSQL] User (${email}) doesn't exist`
+          })
+        }
       }else{
         //error executing query
         reject({
@@ -675,7 +682,7 @@ async function canModifySectionPermission(sectionID, userID){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
     connection.query(
-    `SELECT user_id FROM permissions WHERE user_id=? AND section_id=? AND can_modify_permissions = TRUE`,
+    `SELECT user_id FROM permissions WHERE user_id=? AND section_id=? AND can_modify_permissions = TRUE OR is_owner = TRUE`,
     [userID, sectionID],
     (error, results, fields) => {
       if(!error){
@@ -699,7 +706,7 @@ async function canAddPeopleAndModify(sectionID, userID){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
     connection.query(
-    `SELECT user_id FROM permissions WHERE user_id=? AND section_id=? AND can_add_people = TRUE and can_modify_permissions = TRUE`,
+    `SELECT user_id FROM permissions WHERE user_id=? AND section_id=? AND can_add_people = TRUE and can_modify_permissions = TRUE OR is_owner = TRUE`,
     [userID, sectionID],
     (error, results, fields) => {
       if(!error){
@@ -723,7 +730,7 @@ async function canAddPeople(sectionID, userID){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
     connection.query(
-    `SELECT user_id FROM permissions WHERE user_id=? AND section_id=? AND can_add_people = TRUE`,
+    `SELECT user_id FROM permissions WHERE user_id=? AND section_id=? AND can_add_people = TRUE OR is_owner = TRUE`,
     [userID, sectionID],
     (error, results, fields) => {
       if(!error){
@@ -1020,7 +1027,7 @@ async function canAddHolder(userID, sectionID){
     FROM users as u, permissions as p
     WHERE u.id = p.user_id
     AND u.id=? AND p.section_id=?
-    AND p.can_update_game=TRUE`,
+    AND p.can_update_game=TRUE OR p.is_owner = TRUE`,
     [userID, sectionID],
     (error, results, fields) => {
       if(!error){
@@ -1192,7 +1199,7 @@ async function canAddSectionGame(userID, sectionID){
     FROM users as u, permissions as p
     WHERE u.id = p.user_id
     AND u.id=? AND p.section_id=?
-    AND p.can_add_game=TRUE`,
+    AND p.can_add_game=TRUE OR p.is_owner = TRUE`,
     [userID, sectionID],
     (error, results, fields) => {
       if(!error){
@@ -1220,7 +1227,7 @@ async function canDeleteSectionGame(userID, sectionID){
     FROM users as u, permissions as p
     WHERE u.id = p.user_id
     AND u.id=? AND p.section_id=?
-    AND p.can_delete_game=TRUE`,
+    AND p.can_delete_game=TRUE OR p.is_owner = TRUE`,
     [userID, sectionID],
     (error, results, fields) => {
       if(!error){
@@ -1248,7 +1255,7 @@ async function canUpdateSectionGame(userID, sectionID){
     FROM users as u, permissions as p
     WHERE u.id = p.user_id
     AND u.id=? AND p.section_id=?
-    AND p.can_update_game=TRUE`,
+    AND p.can_update_game=TRUE OR p.is_owner = TRUE`,
     [userID, sectionID],
     (error, results, fields) => {
       if(!error){
