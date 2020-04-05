@@ -26,4 +26,18 @@ class SectionPermissions{
   }
 }
 
-module.exports = {SectionPermissionsQuery, SectionPermissions};
+class ToQuerySectionPermissions{
+  constructor({userID, sectionID, canAddGame, canDeleteGame, 
+              canUpdateGame, canAddPeople, canModifyPermissions, isOwner}){
+    this.userID = userID;
+    this.sectionID = sectionID;
+    this.can_add_game = canAddGame;
+    this.can_delete_game = canDeleteGame;
+    this.can_update_game = canUpdateGame;
+    this.can_add_people = canAddPeople;
+    this.can_modify_permissions = canModifyPermissions;
+    this.is_owner = isOwner;
+  }
+}
+
+module.exports = {SectionPermissionsQuery, SectionPermissions, ToQuerySectionPermissions};
