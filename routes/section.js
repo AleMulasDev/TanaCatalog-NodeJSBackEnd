@@ -14,7 +14,7 @@ router.get(`/`, async function(req, res, next) {
     try{
       user = await utils.retrieveUser(req.query.token);
     }catch(err){
-      let error = err.reason?err.reason:err
+      let error = err.error?err.error:err
       res.json({
         error
       })
@@ -29,7 +29,7 @@ router.get(`/`, async function(req, res, next) {
         sections
       })
     }catch(err){
-      let error = err.reason?err.reason:err
+      let error = err.reason?err.reason: 'Errore interno al server'
       res.json({
         error
       })
@@ -54,7 +54,7 @@ router.put(`/`, async function(req, res, next) {
     try{
       user = await utils.retrieveUser(req.body.token);
     }catch(err){
-      let error = err.reason?err.reason:err
+      let error = err.error?err.error:err
       res.json({
         error
       })
@@ -72,7 +72,7 @@ router.put(`/`, async function(req, res, next) {
         return;
       }
     }catch(err){
-      let error = err.reason?err.reason:err
+      let error = err.reason?err.reason: 'Errore interno al server'
       res.json({
         error
       })
@@ -116,7 +116,7 @@ router.put(`/`, async function(req, res, next) {
       })
       utils.logInteraction(`section`, `${user.email} created section ${req.body.title}`);
     }catch(err){
-      let error = err.reason?err.reason:err
+      let error = err.reason?err.reason: 'Errore interno al server'
       res.json({
         error
       })
@@ -139,7 +139,7 @@ router.delete(`/`, async function(req, res, next) {
     try{
       user = await utils.retrieveUser(req.query.token);
     }catch(err){
-      let error = err.reason?err.reason:err
+      let error = err.error?err.error:err
       res.json({
         error
       })
@@ -157,7 +157,7 @@ router.delete(`/`, async function(req, res, next) {
         return;
       }
     }catch(err){
-      let error = err.reason?err.reason:err
+      let error = err.reason?err.reason: 'Errore interno al server'
       res.json({
         error
       })
@@ -172,7 +172,7 @@ router.delete(`/`, async function(req, res, next) {
       })
       utils.logInteraction(`section`, `${user.email} deleted section ${req.query.id}`);
     }catch(err){
-      let error = err.reason?err.reason:err
+      let error = err.reason?err.reason: 'Errore interno al server'
       res.json({
         error
       })
