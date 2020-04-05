@@ -16,7 +16,18 @@ router.post('/', async function(req, res, next) {
     {name: 'token'}
   );
   if(!requestError){
-    let user = await utils.retrieveUser(req.body.token);
+    let user;
+    try{
+      user = await utils.retrieveUser(req.body.token);
+    }catch(err){
+      let error = err.error?err.error:err
+      res.json({
+        error
+      })
+      utils.logDebug(`gameGETindex`, `User operations: ` + err.debug?err.debug:err);
+      return;
+    }
+    
     let game = new Game(req.body);
     try{
       let success = await SQL.addGame(game);
