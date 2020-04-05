@@ -17,7 +17,7 @@ router.get('/', async function(req, res, next) {
         user = await utils.retrieveUser(req.query.token);
       }catch(err){
         utils.logDebug('gamePUT endpoint', 'User token parsing: ' + (err.debug || err));
-        res.json({error: err.reason ? err.reason : "Errore interno al server"})
+        res.json({error: err.error ? err.error : "Errore interno al server"})
         return;
       }
 
@@ -53,7 +53,7 @@ router.put('/', async function(req, res, next) {
       user = await utils.retrieveUser(req.body.token);
     }catch(err){
       utils.logDebug('gamePUT endpoint', 'User token parsing: ' + (err.debug || err));
-      res.json({error: err.reason ? err.reason : "Errore interno al server"})
+      res.json({error: err.error ? err.error : "Errore interno al server"})
       return;
     }
     
@@ -187,7 +187,8 @@ router.delete('/', async function(req, res, next) {
 
     }catch(err){
       utils.logDebug('gameDELETE endpoint', `Errore generico: ${err.debug || err}`);
-      res.json({error: err.reason ? err.reason : "Errore interno al server"});
+      let error = err.reason || err.error || "Errore interno al server"
+      res.json(error);
     }
   }else{
     res.json({error: requestError});
