@@ -3,6 +3,7 @@ var router = express.Router();
 var utils = require("../../utils/utils.js");
 var SQL = utils.SQL;
 var {SectionGames, SectionGamesQuery} = require("./../../models/SectionGame");
+var moment = require("moment");
 
 // get games list for a specified section
 router.get(`/`, async function(req, res, next) {
@@ -15,7 +16,7 @@ router.get(`/`, async function(req, res, next) {
     try{
       user = await utils.retrieveUser(req.query.token);
     }catch(err){
-      let error = err.reason?err.reason:err
+      let error = err.error?err.error:err
       res.json({
         error
       })
@@ -51,7 +52,7 @@ router.get(`/`, async function(req, res, next) {
   }
 });
 
-// add new holder
+// add new game
 router.put(`/`, async function(req, res, next) {
   let requestError = utils.checkRequest(req, `body`,
     {name: `token`},
@@ -63,11 +64,21 @@ router.put(`/`, async function(req, res, next) {
     try{
       user = await utils.retrieveUser(req.body.token);
     }catch(err){
-      let error = err.reason?err.reason:err
+      let error = err.error?err.error:err
       res.json({
         error
       })
       utils.logDebug(`sectionGamePUT`, `User operations: ${err.debug?err.debug:err}`);
+      return;
+    }
+
+    try{
+      let momentDate = new moment(req.body.acquisitionDate);
+      let dataFormatted = momentDate.format('YYYY-MM-DD');
+      req.body.acquisitionDate = dataFormatted;
+    }catch(err){
+      utils.logDebug('gamePUT endpoint', 'Error on date operations: ' + err);
+      res.json({error: err.reason ? err.reason : "Errore interno al server"})
       return;
     }
 
@@ -100,9 +111,10 @@ router.put(`/`, async function(req, res, next) {
         checkSectionGame = await SQL.getSectionGame(req.body.sectionID, req.body.id)
       }
       if(checkSectionGame){
-        // update existing holder
+        // update existing game
         let sectionGame = new SectionGames(req.body);
-        sectionGame.section_id = req.body.sectionID;
+        sectionGame.sectionID = req.body.sectionID;
+        console.log(JSON.stringify(req.body));
         let editSuccess = await SQL.updateSectionGame(req.body.sectionID, req.body.id, sectionGame);
         if(editSuccess){
           res.json({
@@ -125,7 +137,7 @@ router.put(`/`, async function(req, res, next) {
 
     try{
       let sectionGame = new SectionGames(req.body);
-      sectionGame.section_id = req.body.sectionID;
+      sectionGame.sectionID = req.body.sectionID;
       let sectionGameID = await SQL.addSectionGame(sectionGame);
       res.json({
         status: `ok`,
@@ -157,7 +169,7 @@ router.delete(`/`, async function(req, res, next) {
     try{
       user = await utils.retrieveUser(req.query.token);
     }catch(err){
-      let error = err.reason?err.reason:err
+      let error = err.error?err.error:err
       res.json({
         error
       })
