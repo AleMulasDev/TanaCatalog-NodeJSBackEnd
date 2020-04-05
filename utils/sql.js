@@ -6,7 +6,7 @@ let Holder = require("./../models/Holders");
 let {SectionGamesQuery} = require("./../models/SectionGame");
 let {SectionPermissionsQuery} = require("./../models/SectionPermissions");
 let {GamePermissionsQuery} = require("./../models/GamePermissions");
-let {SectionUserQuery} = require("./../models/SectionUser");
+let {SectionUserQuery, ToQuerySectionPermissions} = require("./../models/SectionUser");
 
 var pool  = mysql.createPool({
   connectionLimit : 10,
@@ -1082,10 +1082,10 @@ async function sectionGameList(sectionID){
 async function addSectionGame(game){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
-    let {game_id, section_id, is_new, acquisition_date, origin, propriety, holder_id} = game
+    let {gameID, sectionID, isNew, acquisitionDate, origin, propriety, holderID} = game
     connection.query(
     `INSERT INTO sectionGames (game_id, section_id, is_new, acquisition_date, origin, propriety, holder_id) VALUES (?,?,?,?,?,?,?)`,
-    [game_id, section_id, is_new, acquisition_date, origin, propriety, holder_id],
+    [gameID, sectionID, isNew, acquisitionDate, origin, propriety, holderID],
     (error, results, fields) => {
       if(!error){
         resolve(results.insertId);
@@ -1159,7 +1159,7 @@ async function deleteSectionGame(sectionID, gameID){
 async function updateSectionGame(sectionID, gameID, game){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
-    let {is_new, acquisition_date, origin, propriety, holder_id} = game
+    let {isNew, acquisitionDate, origin, propriety, holderID} = game
     connection.query(
     `UPDATE sectionGames SET 
     is_new = ?,
@@ -1169,7 +1169,7 @@ async function updateSectionGame(sectionID, gameID, game){
     holder_id = ?
     WHERE id=?
     AND section_id = ?`,
-    [is_new, acquisition_date, origin, propriety, holder_id, gameID, sectionID],
+    [isNew, acquisitionDate, origin, propriety, holderID, gameID, sectionID],
     (error, results, fields) => {
       if(!error){
         if(results.affectedRows === 1){
