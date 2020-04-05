@@ -3,6 +3,7 @@ var router = express.Router();
 var utils = require("../../utils/utils.js");
 var SQL = utils.SQL;
 var {GamePermissions, GamePermissionRequest} = require("./../../models/GamePermissions");
+var {ToQuerySectionPermissions} = require("./../../models/SectionPermissions");
 
 // get user list of a section
 router.get('/', async function(req, res, next) {
@@ -75,6 +76,10 @@ router.put('/', async function(req, res, next) {
       res.json(error);
       utils.logDebug('sectionUserPUT', `Error retrieving user id: ${err.debug || err}`);
       return;
+    }
+
+    if(req.body.permission){
+      req.body.permission = new ToQuerySectionPermissions(req.body.permission);
     }
 
     try{
