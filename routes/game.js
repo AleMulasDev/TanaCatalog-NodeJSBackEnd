@@ -61,7 +61,6 @@ router.put('/', async function(req, res, next) {
     let permission = new GamePermissions();
     permission.ownerID = user.id;
     try{
-      console.log(req.body.canUpdateGame);
       if(req.body.canUpdateGame != undefined){
         if(req.body.canUpdateGame == "false"){
           permission.canUpdateGame = 0;
@@ -87,11 +86,15 @@ router.put('/', async function(req, res, next) {
         try{
           let permissionOBJ = await SQL.getGamePermission(req.body.id);
           let permission = new GamePermissions(permissionOBJ);
-          if(permission.ownerID != user.id || !permission.canUpdateGame){
+          if(permission.canUpdateGame != 1 && permission.ownerID != user.id){
             res.json({
               error: 'Non disponi dei permessi necessari'
             })
             return;
+          }
+
+          if(user.id == permission.ownerID){
+            await SQL.setGamePermission(permission);
           }
         }catch(err){
           utils.logDebug('gamePUT endpoint', 'Checking permissions ' + (err.debug || err));
@@ -101,7 +104,6 @@ router.put('/', async function(req, res, next) {
 
         // update existing game
         await SQL.updateGame(req.body.id, game);
-        await SQL.setGamePermission(permission);
         res.json({
           status: "ok"
         })

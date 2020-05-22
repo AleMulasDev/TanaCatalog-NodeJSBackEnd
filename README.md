@@ -29,12 +29,19 @@ Per la creazione e la verifica dei JWT sono necessarie due chiavi (privata/pubbl
 jwtRS256.key
 jwtRS256.key.pub
 Le chiavi originali sono state create in ambiente Linux (Ubuntu server 18.04) coi seguenti comandi:
+
 ```
 ssh-keygen -t rsa -b 4096 -m PEM -f jwtRS256.key
 #Senza pass phrase
 openssl rsa -in jwtRS256.key -pubout -outform PEM -out jwtRS256.key.pub
 ```
 
+
+
 # Avvio
 
 Per l'avvio basterà utilizzare il comando `npm start`
+
+
+
+## Endpoint

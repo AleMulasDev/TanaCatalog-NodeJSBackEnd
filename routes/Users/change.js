@@ -10,7 +10,7 @@ router.post("/", async function(req, res, next) {
   if(req.body.token && !email){
     try{
     let user = await utils.retrieveUser(req.body.token);
-    let email = user.email
+    email = user.email
     }catch(err){
       utils.logDebug('change endpoint',err.debug);
       res.json({

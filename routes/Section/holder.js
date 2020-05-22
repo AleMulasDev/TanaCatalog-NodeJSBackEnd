@@ -54,9 +54,10 @@ router.get(`/`, async function(req, res, next) {
 // add new holder
 router.put(`/`, async function(req, res, next) {
   let requestError = utils.checkRequest(req, `body`, 
-    {name: `title`, isName: true},
+    {name: `title`},
     {name: `token`},
-    {name: `sectionID`}
+    {name: `sectionID`},
+    {isSectionHolder: true}
   );
   if(!requestError){
 

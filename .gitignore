@@ -118,3 +118,4 @@ __test__.js
 routes/imagesUploaded/*
 !routes/imagesUploaded/getImages.js
 tmp/
+wwwB

@@ -78,6 +78,65 @@ function checkRequest(request, check, ...parameters_to_check){
     if(p.isGame){
       //TODO
     }
+    if(p.isSectionHolder){
+      if(!r[check].section_id){
+        let e = 'Errore: il custode non risulta collegato ad una sezione';
+        error = error ? error += `\n${e}` : e;
+        break;
+      }
+      if(!r[check].title){
+        let e = 'Errore: specificare un titolo per il custode';
+        error = error ? error += `\n${e}` : e;
+        break;
+      }
+      if(!r[check].address){
+        let e = 'Errore: non è stato specificato l\'indirizzo';
+        error = error ? error += `\n${e}` : e;
+        break;
+      }
+      if(!r[check].cap || !((""+r[check].cap).length <= 5)){
+        let e = 'Errore: il cap non è specificato o supera 5 caratteri';
+        error = error ? error += `\n${e}` : e;
+        break;
+      }
+      if(!r[check].city){
+        let e = 'Errore: non è stata specificata una città';
+        error = error ? error += `\n${e}` : e;
+        break;
+      }
+    }
+    if(p.isSectionGame){
+      if(!r[check].sectionID){
+        let e = 'Errore: il gioco non risulta collegato ad una sezione';
+        error = error ? error += `\n${e}` : e;
+        break;
+      }
+      if(!r[check].gameID){
+        let e = 'Errore: il gioco non risulta essere specificato';
+        error = error ? error += `\n${e}` : e;
+        break;
+      }
+      if(!r[check].holderID){
+        let e = 'Errore: non è specificato il proprietario';
+        error = error ? error += `\n${e}` : e;
+        break;
+      }
+      if(!r[check].acquisitionDate){
+        let e = 'Errore: non è specificata una data di acquisizione';
+        error = error ? error += `\n${e}` : e;
+        break;
+      }
+      if(!r[check].origin){
+        let e = `Errore: non è specificata un'origine`;
+        error = error ? error += `\n${e}` : e;
+        break;
+      }
+      if(!r[check].propriety){
+        let e = 'Errore: non è specificata la proprietà';
+        error = error ? error += `\n${e}` : e;
+        break;
+      }
+    }
     if(p.isBggId){
       let arr = new Array();
       if(Array.isArray(r[check][p.name])){
@@ -129,18 +188,21 @@ async function retrieveUser(token){
                 //expired token
                 reject({
                   error: 'La tua sessione è scaduta, rilogga',
+                  reason: 'La tua sessione è scaduta, rilogga',
                   debug: 'Received expired token'
                 })
               }
             }else{
               reject({
                 error: 'Chiave di sessione errata o corrotta, rilogga',
+                reason: 'Chiave di sessione errata o corrotta, rilogga',
                 debug: 'Found token without the required parameters'
               })
             }
           }else{
             reject({
               error: 'Ricevuta chiave di sessione errata',
+              reason: 'Ricevuta chiave di sessione errata',
               debug: 'Failed to verify a token: ' + err
             })
           }
@@ -148,6 +210,7 @@ async function retrieveUser(token){
       }else{
         reject({
           error: 'Errore interno al server, riprova più tardi',
+          reason: 'Errore interno al server, riprova più tardi',
           debug: 'Error reading public key\'s file: ' + err
         })
       }

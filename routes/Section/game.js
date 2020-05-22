@@ -56,7 +56,8 @@ router.get(`/`, async function(req, res, next) {
 router.put(`/`, async function(req, res, next) {
   let requestError = utils.checkRequest(req, `body`,
     {name: `token`},
-    {name: `sectionID`}
+    {name: `sectionID`},
+    {name: `id`, isSectionGame: true}
   );
   if(!requestError){
 

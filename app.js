@@ -51,6 +51,8 @@ app.use(fileUpload({
 
 var whitelist = [
   'http://127.0.0.1:4200',
+  'http://192.168.1.238:4200',
+  'http://192.168.1.239:4200',
   'http://localhost:4200'
 ];
 var corsOptions = {
@@ -99,5 +101,7 @@ console.log("Listening on: " + constant.GAME_PERMISSION_PATH);
 console.log("Listening on: " + constant.SECTION_USER_PATH);
 
 console.log("Listening on: " + constant.IMAGES_UPLOADED);
+
+console.log("\nApi correctly started\n")
 
 module.exports = app;
