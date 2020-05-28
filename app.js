@@ -21,7 +21,6 @@ var imageRouter = require("./routes/imagesUploaded/getImages");
 var gameRouter = require("./routes/game");
 var searchbggRouter = require("./routes/game/searchbgg");
 var fetchbggRouter = require("./routes/game/fetchbgg");
-var gamePermissionRouter = require("./routes/game/permission");
 
 var sectionsRouter = require("./routes/section"); 
 var holderRouter = require("./routes/section/holder");
@@ -74,7 +73,6 @@ app.use(constant.CHANGE_EMAIL_PATH, changeEmailRouter);
 app.use(constant.BASE_PATH_GAMES, gameRouter);
 app.use(constant.SEARCHBGG_GAME_PATH, searchbggRouter);
 app.use(constant.FETCHBGG_GAME_PATH, fetchbggRouter);
-app.use(constant.GAME_PERMISSION_PATH, gamePermissionRouter);
 app.use(constant.BASE_PATH_SECTIONS, sectionsRouter);
 app.use(constant.HOLDER_PATH, holderRouter);
 app.use(constant.SECTION_GAMES_PATH, sectionGameRouter);
