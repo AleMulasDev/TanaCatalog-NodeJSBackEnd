@@ -17,33 +17,18 @@ class GameQuery{
     this.firstname = query_results["firstname"]
     this.lastname = query_results["lastname"]
     this.can_update_game = query_results["can_update_game"]
-    this.owner_id = query_results["owner_id"]
+    this.userID = query_results["user_id"]
+    this.ownerID = query_results["owner_id"]
     this.canEdit = query_results["canEdit"] || undefined
-    this.isOwner = query_results["isOwner"] || undefined
-  }
-
-  getObj(){
-    return { 
-      id: this.id,
-      title: this.title,
-      description: this.description,
-      link_tdg: this.link_tdg,
-      players: this.players,
-      playtime: this.playtime,
-      age: this.age,
-      gamebgg_id: this.gamebgg_id,
-      image: this.image,
-      thumbnail: this.thumbnail,
-      price: this.price
-    };
+    this.isOwner = query_results["is_owner"] || undefined
   }
 }
 
 class Game{
-  constructor({id, owner_id, title, description, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price,
-    firstname, lastname, can_update_game, canEdit, isOwner}){
+  constructor({id, ownerID, title, description, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price,
+    firstname, lastname, can_update_game, canEdit, isOwner, userID}){
     this.id = id ? id : undefined;
-    this.ownerID = owner_id;
+    this.ownerID = ownerID;
     this.title = title;
     this.description = description
     this.link_tdg = link_tdg;
@@ -58,6 +43,7 @@ class Game{
     this.canUpdateGame = can_update_game;
     this.canEdit = canEdit || undefined;
     this.isOwner = isOwner || undefined;
+    this.userID = userID;
   }
 
   hasId(){

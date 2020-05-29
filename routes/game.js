@@ -5,13 +5,16 @@ var {Game} = require("../models/Game");
 var SQL = utils.SQL;
 const pathModule = require('path');
 const sharp = require('sharp');
-var {GamePermissions} = require('./../models/GamePermissions');
+var {GamePermissions, GamePermissionRequest} = require('./../models/GamePermissions');
 
 //send list of games
 router.get('/', async function(req, res, next) {
-  try{
-    let gamesQuery;
-    if(req.query.token){
+  let requestError = utils.checkRequest(req, 'query',
+    {name: 'token'}
+  );
+  if(!requestError){
+    try{
+      let gamesQuery;
       let user;
       try{
         user = await utils.retrieveUser(req.query.token);
@@ -22,22 +25,23 @@ router.get('/', async function(req, res, next) {
       }
 
       gamesQuery = await SQL.gameListWithPermission(user.id);
-    }else{
-      gamesQuery = await SQL.gameList();
+      
+      let games = new Array();
+      for(let game of gamesQuery){
+        games.push(new Game(game));
+      }
+      res.json({
+        status: "ok",
+        games: games
+      });
+    }catch(err){
+      res.json({
+        error: err.reason ? err.reason : "Errore interno al server"
+      });
+      utils.logDebug('gameGET endpoint', err.debug || err);
     }
-    let games = new Array();
-    for(let game of gamesQuery){
-      games.push(new Game(game));
-    }
-    res.json({
-      status: "ok",
-      games: games
-    });
-  }catch(err){
-    res.json({
-      error: err.reason ? err.reason : "Errore interno al server"
-    });
-    utils.logDebug('gameGET endpoint', err.debug || err);
+  }else{
+    res.json({error: requestError});
   }
 });
 
@@ -58,43 +62,21 @@ router.put('/', async function(req, res, next) {
     }
     
     let game = new Game(req.body);    
-    let permission = new GamePermissions();
-    permission.ownerID = user.id;
-    try{
-      if(req.body.canUpdateGame != undefined){
-        if(req.body.canUpdateGame == "false"){
-          permission.canUpdateGame = 0;
-        }else{
-          permission.canUpdateGame = 1;
-        }
-      }else{
-        permission.canUpdateGame = 1;
-      }
-    }catch(err){
-      utils.logDebug('gamePUT endpoint', 'Permission retrieving: ' + (err.debug || err));
-      res.json({error: err.reason ? err.reason : "Errore interno al server"})
-      return;
-    }
-
+    
     try{
       let checkGame;
       if(req.body.id){
-        checkGame = await SQL.getGame(req.body.id)
+        checkGame = await SQL.getGame(req.body.id, user.id)
       }
       if(checkGame){
-        permission.gameID = req.body.id;
         try{
-          let permissionOBJ = await SQL.getGamePermission(req.body.id);
+          let permissionOBJ = await SQL.getGamePermission(req.body.id, user.id);
           let permission = new GamePermissions(permissionOBJ);
-          if(permission.canUpdateGame != 1 && permission.ownerID != user.id){
+          if(!permission.canUpdateGame && !permission.isOwner){
             res.json({
               error: 'Non disponi dei permessi necessari'
             })
             return;
-          }
-
-          if(user.id == permission.ownerID){
-            await SQL.setGamePermission(permission);
           }
         }catch(err){
           utils.logDebug('gamePUT endpoint', 'Checking permissions ' + (err.debug || err));
@@ -114,8 +96,12 @@ router.put('/', async function(req, res, next) {
       utils.logDebug('gamePUT endpoint', 'Checking if alredy exist ' + (err.debug || err));
       res.json({error: err.reason ? err.reason : "Errore interno al server"})
       return;
-    }
+    }//game does not exist
 
+    let permission = new GamePermissionRequest();
+    permission.userID = user.id;
+    permission.isOwner = true;
+    permission.canUpdateGame = true;
     let imagePath;
     if(req.files && req.files.image){
       try{
@@ -152,11 +138,18 @@ router.delete('/', async function(req, res, next) {
   );
   if(!requestError){
     try{
-      let user = await utils.retrieveUser(req.query.token);
+      let user;
+      try{
+        user = await utils.retrieveUser(req.query.token);
+      }catch(err){
+        utils.logDebug('gameDELETE endpoint', 'User token parsing: ' + (err.debug || err));
+        res.json({error: err.error ? err.error : "Errore interno al server"})
+        return;
+      }
 
       let isInUse = await SQL.gameIsUsed(req.query.id)
       if(!isInUse){
-        let gameOBJ = await SQL.getGame(req.query.id);
+        let gameOBJ = await SQL.getGame(req.query.id, user.id);
         let game = new Game(gameOBJ);
         if(game === undefined){
           res.json({
@@ -165,7 +158,7 @@ router.delete('/', async function(req, res, next) {
           utils.logInteraction('gamedelete', `${user.email} tryed to delete a game which doesn't exist. id: ${req.query.id}`);
           return;
         }else{
-          if(game.ownerID == user.id){
+          if(game.isOwner){
             await SQL.deleteGame(req.query.id);
             res.json({
               status: 'ok'

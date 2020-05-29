@@ -17,13 +17,22 @@ var pool  = mysql.createPool({
 });
 
 function _initConnection() {
-  // return mysql.createConnection({
-  //   host: constant.MYSQL_ADDRESS,
-  //   user: secrets.MYSQL_USERNAME,
-  //   password: secrets.MYSQL_PASSWORD,
-  //   database: "tanagoblin"
-  // });
   return pool;
+}
+
+async function getSingleConnection(pool) {
+  return new Promise((resolve, reject) => {
+    pool.getConnection((err, conn) => {
+      if(err){
+        reject({
+          reason: "Errore interno al server, riprova piú tardi",
+          debug: `[MYSQL] Error getting connection from pool`
+        })
+      }else{
+        resolve(conn);
+      }
+    })
+  })
 }
 
 //---------------------------------------------------------
@@ -274,15 +283,27 @@ async function _userIsWhitelist(id){
 //                          GAME
 //---------------------------------------------------------
 
-async function _gameList(){
+async function _gameList(userID){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
 
     connection.query(
-    `SELECT games.id, owner_id, title, description, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price, firstname, lastname, can_update_game
-    FROM games, users, gamePermissions
+    `SELECT games.id, user_id, title, DESCRIPTION, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price, t.firstname, t.lastname, can_update_game, t.owner_id
+    FROM games, users, gamePermissions,
+    (
+    SELECT users.id AS owner_id, firstname, lastname
+    FROM users
+    ) AS t
     WHERE games.id = game_id
-    AND users.id = owner_id`,
+    AND users.id = user_id
+    AND user_id = ?
+    AND t.owner_id = (
+    SELECT user_id AS owner_id
+    FROM gamePermissions
+    WHERE is_owner = TRUE
+    AND game_id = games.id
+    )`,
+    [userID],
     (error, results, fields) => {
       if(!error){
         let games = new Array();
@@ -305,24 +326,35 @@ async function gameListWithPermission(userID){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
     connection.query(
-    `SELECT games.id, owner_id, title, description, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price, firstname, lastname, can_update_game,
+    `SELECT games.id, user_id, title, DESCRIPTION, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price, t.firstname, t.lastname, can_update_game,
     COALESCE((
-      SELECT 'true'
-      FROM gamePermissions
-      WHERE (owner_id = ?
-      OR can_update_game = TRUE)
-      AND game_id = games.id
-    ), 'false') as canEdit,
+    SELECT 'true'
+    FROM gamePermissions
+    WHERE user_id = ?
+    AND game_id = games.id
+    AND can_update_game = TRUE
+    ), 'false') AS canEdit,
     COALESCE((
-      SELECT 'true'
-      FROM gamePermissions
-      WHERE owner_id = ?
-      AND game_id = games.id
-    ), 'false') as isOwner
-    FROM games, users, gamePermissions
+    SELECT 'true'
+    FROM gamePermissions
+    WHERE user_id = ?
+    AND game_id = games.id
+    ), 'false') AS isOwner
+    FROM games, users, gamePermissions,
+    (
+    SELECT users.id AS owner_id, firstname, lastname
+    FROM users
+    ) AS t
     WHERE games.id = game_id
-    AND users.id = owner_id;`,
-    [userID, userID],
+    AND users.id = user_id
+    AND users.id = ?
+    AND t.owner_id = (
+    SELECT user_id AS owner_id
+    FROM gamePermissions
+    WHERE is_owner = TRUE
+    AND game_id = games.id
+    )`,
+    [userID, userID, userID],
     (error, results, fields) => {
       if(!error){
         let games = new Array();
@@ -394,17 +426,28 @@ async function _gameIsUsed(id){
   })
 }
 
-async function _getGame(id){
+async function _getGame(id, userID){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
 
     connection.query(
-    `SELECT games.id, owner_id, title, description, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price, firstname, lastname, can_update_game
-    FROM games, users, gamePermissions
+    `SELECT games.id, user_id, title, description, link_tdg, players, playtime, age, gamebgg_id, image, thumbnail, price, firstname, lastname, can_update_game, is_owner, t.owner_id
+    FROM games, users, gamePermissions, 
+    (
+    SELECT users.id AS owner_id
+    FROM users
+    ) AS t
     WHERE games.id = game_id
-    AND users.id = owner_id
-    AND games.id = ?`,
-    [id],
+    AND users.id = user_id
+    AND games.id = ?
+    AND users.id = ?
+    AND t.owner_id = (
+    SELECT user_id AS owner_id
+    FROM gamePermissions
+    WHERE game_id = ?
+    AND is_owner = TRUE
+    )`,
+    [id, userID, id],
     (error, results, fields) => {
       if(!error){
         if(results.length != 0){
@@ -427,7 +470,6 @@ async function _getGame(id){
 async function _deleteGame(id){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
-
     connection.query(
     `DELETE FROM games WHERE id=?`,
     [id],
@@ -1310,15 +1352,26 @@ async function getSectionPermission(userID, sectionID){
   })
 }
 
-async function getGamePermission(gameID){
+async function getGamePermission(gameID, userID){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
     connection.query(
-    `SELECT users.firstname, users.lastname, owner_id, game_id, can_update_game
-    FROM gamePermissions, users
+    `SELECT t.firstname, t.lastname, user_id, game_id, can_update_game, is_owner, t.owner_id
+    FROM gamePermissions, users,
+    (
+    SELECT users.id AS owner_id, firstname, lastname
+    FROM users
+    ) AS t
     WHERE game_id = ?
-    AND gamePermissions.owner_id = users.id`,
-    [gameID],
+    AND gamePermissions.user_id = users.id
+    AND users.id = ?
+    AND t.owner_id = (
+    SELECT user_id AS owner_id
+    FROM gamePermissions
+    WHERE is_owner = TRUE
+    AND game_id = ?
+    )`,
+    [gameID, userID, gameID],
     (error, results, fields) => {
       if(!error){
         if(results.length != 0){
@@ -1328,7 +1381,7 @@ async function getGamePermission(gameID){
           //length is 0
           reject({
             reason: "Non sono state trovati i permessi relativi al gioco selezionato",
-            debug: `[MYSQL] Didn't find anything from this query`
+            debug: `[MYSQL] Didn't find anything from this query. Length: ${results.length}`
           });
         }
       }else{
@@ -1347,17 +1400,17 @@ async function setGamePermission(permissions){
     let connection = _initConnection();
     connection.query(
     `UPDATE gamePermissions SET
-    can_update_game=?,
-    owner_id = ?
-    WHERE
-    game_id = ?`,
-    [permissions.canUpdateGame, permissions.ownerID, permissions.gameID],
+    is_owner = ?,
+    can_update_game = ?
+    WHERE game_id = ?
+    AND user_id = ?`,
+    [permissions.isOwner, permissions.canUpdateGame, permissions.gameID, permissions.userID],
     (error, results, fields) => {
       if(!error){
         if(results.affectedRows == 0){
           reject({
             reason: "Impossibile aggiornare il gioco",
-            debug: `[MYSQL] Error: 0 affected rows for owner: ${permissions.ownerID}, game: ${permissions.gameID}`
+            debug: `[MYSQL] Error: 0 affected rows for user: ${permissions.userID}, game: ${permissions.gameID}`
           })
         }else{
           resolve(true);
@@ -1377,15 +1430,15 @@ async function addGamePermission(permissions){
   return new Promise((resolve, reject) => {
     let connection = _initConnection();
     connection.query(
-    `INSERT INTO gamePermissions (can_update_game, owner_id, game_id) VALUES 
-    (?,?,?)`,
-    [permissions.canUpdateGame, permissions.ownerID, permissions.gameID],
+    `INSERT INTO gamePermissions (is_owner, can_update_game, game_id, user_id) VALUES 
+    (?,?,?,?)`,
+    [permissions.isOwner, permissions.canUpdateGame, permissions.gameID, permissions.userID],
     (error, results, fields) => {
       if(!error){
         if(results.affectedRows == 0){
           reject({
             reason: "Impossibile inserire il gioco",
-            debug: `[MYSQL] Error: 0 affected rows for owner: ${permissions.ownerID}, game: ${permissions.gameID}`
+            debug: `[MYSQL] Error: 0 affected rows for user: ${permissions.userID}, game: ${permissions.gameID}`
           })
         }else{
           resolve(true);
